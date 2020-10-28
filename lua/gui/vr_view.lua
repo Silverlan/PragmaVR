@@ -18,6 +18,7 @@ function gui.VRView:__init()
 
 	self:SetHorizontalRange(360.0)
 	self:SetCameraRotation(Quaternion())
+	self:SetRotationOffset(Quaternion())
 	self:SetZoomLevel(1.0)
 	self:SetRenderFlags(bit.bor(shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_BIT,shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_VERTICAL_BIT))
 	self.m_shaderVr = shader.get("vr_equirectangular")
@@ -37,6 +38,7 @@ function gui.VRView:SetHorizontalRange(range) self.m_horizontalRange:Set(range) 
 function gui.VRView:GetHorizontalRange() return self.m_horizontalRange:Get() end
 function gui.VRView:GetHorizontalRangeProperty() return self.m_horizontalRange end
 function gui.VRView:SetStereoImage(eye) self.m_renderFlags:Set(math.set_flag(self.m_renderFlags:Get(),shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_RIGHT_EYE_BIT,eye == gui.VRView.STEREO_IMAGE_RIGHT)) end
+function gui.VRView:SetRotationOffset(rot) self.m_rotationOffset = rot:ToMatrix() end
 function gui.VRView:DrawVR(drawCmd,dsTex)
 	local cam
 	local v
@@ -47,6 +49,8 @@ function gui.VRView:DrawVR(drawCmd,dsTex)
 		v = self.m_viewMatrix
 		cam = game.get_scene():GetActiveCamera()
 	end
+	if(util.is_valid(cam) == false) then return end
+	v = self.m_rotationOffset *v
 	-- Strip translation
 	v:Set(3,0,0)
 	v:Set(3,1,0)

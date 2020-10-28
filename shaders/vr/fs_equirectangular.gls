@@ -24,9 +24,19 @@ layout(location = 0) out vec4 fs_color;
 void main()
 {
 	vec2 uv = vs_vert_uv;
+	vec4 colorMod = vec4(1,1,1,1);
 	if((u_pushConstants.shaderFlags &SHADER_FLAG_2D_BIT) == 0)
 	{
-		uv = direction_to_equirectangular_uv_coordinates(normalize(vs_vert_world_dir),u_pushConstants.horizontalFactor);
+		vec3 dir = normalize(vs_vert_world_dir);
+		uv = direction_to_equirectangular_uv_coordinates(dir,u_pushConstants.horizontalFactor);
+
+		float d = dot(dir,vec3(1,0,0));
+		float margin = 0.1;
+		if(d < margin)
+		{
+			float f = max(d,0.0) /margin;
+			colorMod.rgb = vec3(f,f,f);
+		}
 
 		uv -= 0.5;
 		uv *= u_pushConstants.zoom;
@@ -37,5 +47,6 @@ void main()
 
 	vec4 col = texture(u_texture,uv);
 	fs_color.rgb = col.rgb;
+	fs_color *= colorMod;
 	fs_color.a = 1;
 }

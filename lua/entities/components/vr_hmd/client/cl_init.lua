@@ -168,6 +168,8 @@ end
 function ents.VRHMD:GetCamera()
 	return game.get_scene():GetActiveCamera()
 end
+function ents.VRHMD:SetHMDPoseOffset(offsetPose) self.m_offsetPose = offsetPose end
+function ents.VRHMD:GetHMDPoseOffset() return self.m_offsetPose or phys.Transform() end
 function ents.VRHMD:GetReferencePose() return self.m_refPose end
 local cvApplyHMDPose = console.get_convar("vr_apply_hmd_pose_to_camera")
 function ents.VRHMD:UpdateHMDPose()
@@ -175,11 +177,25 @@ function ents.VRHMD:UpdateHMDPose()
 	local gameCam = self:GetCamera()
 	if(gameCam == nil or tdC == nil) then return end
 	local entCam = gameCam:GetEntity()
+
+	-- TODO: This does NOT belong here!
+	-- PFM camera doesn't update unless needed (i.e. during playback), but we
+	-- need it to update every frame, so we'll force it here.
+	if(ents.COMPONENT_PFM_ACTOR ~= nil) then
+		local pfmActorC = entCam:GetComponent(ents.COMPONENT_PFM_ACTOR)
+		if(pfmActorC ~= nil) then
+			pfmActorC:UpdatePose()
+		end
+	end
+	--
+
 	self.m_refPose = entCam:GetPose()
 	local pose = self.m_refPose
 	if(cvApplyHMDPose:GetBool()) then
 		local hmdPose = tdC:GetDevicePose()
 		if(hmdPose == nil) then return end
+		hmdPose:SetRotation(hmdPose:GetRotation())
+		if(self.m_offsetPose ~= nil) then hmdPose = self.m_offsetPose *hmdPose end
 		pose = pose *hmdPose
 	end
 
@@ -197,13 +213,13 @@ function ents.VRHMD:UpdateHMDPose()
 	self:InvokeEventCallbacks(ents.VRHMD.EVENT_ON_HMD_POSE_UPDATED,{pose})
 end
 function ents.VRHMD:RenderEyes(drawSceneInfo)
+	openvr.update_poses()
 	for eyeIdx,eye in pairs(self.m_eyes) do
 		if(eye:IsValid()) then
 			eye:DrawScene(drawSceneInfo)
 		end
 	end
 	prosper.flush()
-	openvr.update_poses()
 end
 function ents.VRHMD:SetOwner(owner)
 	local ownableC = self:GetEntity():GetComponent(ents.COMPONENT_OWNABLE)

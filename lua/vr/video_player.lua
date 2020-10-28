@@ -79,6 +79,10 @@ function util.VideoPlayer:GetHeight(...) return self.m_player:GetHeight(...) end
 function util.VideoPlayer:SetVolume(volume) self.m_volume = volume end
 function util.VideoPlayer:GetVolume(...) return self.m_player:GetVolume(...) end
 function util.VideoPlayer:GetPlaybackTime(...) return self.m_player:GetPlaybackTime(...) end
+function util.VideoPlayer:SetLooping(...) return self.m_player:SetLooping(...) end
+function util.VideoPlayer:IsLooping(...) return self.m_player:IsLooping(...) end
+function util.VideoPlayer:SetMuted(...) return self.m_player:SetMuted(...) end
+function util.VideoPlayer:IsMuted(...) return self.m_player:IsMuted(...) end
 
 function util.VideoPlayer:Close()
 	util.remove(self.m_cbUpdate)

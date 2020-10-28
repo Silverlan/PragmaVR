@@ -45,8 +45,8 @@ function gui.VRTimeline:OnInitialize()
 	local cursor = gui.create("WIPFMSliderCursor",self)
 	cursor:CenterToParentX()
 	cursor:SetType(gui.PFMSliderCursor.TYPE_HORIZONTAL)
-	cursor:AddCallback("OnFractionChanged",function(el,fraction)
-		self:SetTimeOffset(fraction *self:GetDuration())
+	cursor:AddCallback("OnFractionChanged",function(el,fraction,inputOrigin)
+		self:SetTimeOffset(fraction *self:GetDuration(),inputOrigin)
 	end)
 	self.m_cursor = cursor
 	cursor:SetSize(1,20)
@@ -84,11 +84,11 @@ function gui.VRTimeline:SetDuration(duration)
 	self:UpdateProgressBar()
 end
 function gui.VRTimeline:GetDuration() return self.m_duration end
-function gui.VRTimeline:SetTimeOffset(timeOffset)
+function gui.VRTimeline:SetTimeOffset(timeOffset,inputOrigin)
 	self.m_timeOffset = timeOffset
 	self:UpdateProgressBar()
 
-	self:CallCallbacks("OnTimeOffsetChanged",timeOffset)
+	self:CallCallbacks("OnTimeOffsetChanged",timeOffset,inputOrigin)
 end
 function gui.VRTimeline:UpdateProgressBar()
 	local progress = self.m_timeOffset /self.m_duration

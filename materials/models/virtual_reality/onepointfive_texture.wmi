@@ -1,0 +1,9 @@
+"pbr"
+{
+	$texture albedo_map "models/virtual_reality/onepointfive_texture"
+	$texture roughness_map "pbr/rough"
+	$float metalness_factor "0.000000"
+	$texture metalness_map "pbr/metal"
+	$texture ao_map "models/virtual_reality/onepointfive_texture_ao"
+	$string surfacematerial "plastic"
+}

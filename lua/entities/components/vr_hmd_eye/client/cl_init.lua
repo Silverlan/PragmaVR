@@ -94,11 +94,11 @@ function ents.VRHMDEye:DrawScene(mainDrawSceneInfo)
 	end
 	gameCam:UpdateViewMatrix()
 	local vm = gameCam:GetViewMatrix()
-	entGameCam:SetRotation(rot)
+	--entGameCam:SetRotation(rot)
 
 	camC:SetViewMatrix(vm)
 	--local hmdPoseMatrix = openvr.get_pose_matrix()
-	local eyeToHeadTransform = openvr.get_eye_to_head_transform(self.m_eyeIdx,camC)
+	--local eyeToHeadTransform = openvr.get_eye_to_head_transform(self.m_eyeIdx,camC)
 	--local mView = hmdPoseMatrix *eyeToHeadTransform
 	if(test == false) then
 		--camC:SetViewMatrix(mView)

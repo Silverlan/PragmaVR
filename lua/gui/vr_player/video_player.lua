@@ -161,7 +161,7 @@ function gui.VRVideoPlayer:LinkToControls(aspectRatio,timeline,playControls)
 
 		vp:AddCallback("OnOffsetChanged",function(oldOffset,newOffset)
 			if(timeline:IsCursorBeingDragged()) then return end
-			timeline:SetTimeOffset(newOffset)
+			timeline:SetTimeOffset(newOffset,"player")
 		end)
 		vp:AddCallback("OnStateChanged",function()
 			self.m_skipCallbacks = true

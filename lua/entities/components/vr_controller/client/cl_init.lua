@@ -102,10 +102,6 @@ function ents.VRController:IsPrimaryController()
 end
 function ents.VRController:IsSecondaryController() return not self:IsPrimaryController() end
 
-function ents.VRController:InitializeLogic(component)
-  self:BindEvent(ents.LogicComponent.EVENT_ON_TICK,"OnTick")
-end
-
 function ents.VRController:SetLaserEnabled(enabled) self.m_laserEnabled = enabled; self:UpdateLaser() end
 function ents.VRController:IsLaserEnabled() return self.m_laserEnabled or false end
 function ents.VRController:UpdateLaser()
@@ -136,7 +132,15 @@ function ents.VRController:OnTick(dt)
 			local pos = self:GetEntity():GetPos()
 			local dir = self:GetEntity():GetForward()
 			local posDst = pos +dir *2048.0
-			local rayData = charComponent:GetAimRayData(1200.0)
+
+			local srcPos = self:GetEntity():GetPos()
+			self.m_laser:SetPos(srcPos)
+			self.m_laser:SetRotation(self:GetEntity():GetRotation() *EulerAngles(0,180,0):ToQuaternion())
+			local l = 500--ray.position:Distance(srcPos)
+			self.m_laser:SetScale(Vector(0,0,l))
+
+			self:BroadcastEvent(self.EVENT_ON_LASER_HIT,{pos,-dir})
+			--[[local rayData = charComponent:GetAimRayData(1200.0)
 			rayData:SetSource(pos)
 			rayData:SetTarget(posDst)
 			local ent = self:GetEntity()
@@ -152,7 +156,7 @@ function ents.VRController:OnTick(dt)
 
 					self:BroadcastEvent(self.EVENT_ON_LASER_HIT,{pos,-dir,ray})
 				end
-			end
+			end]]
 		end
 	end
 end

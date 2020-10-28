@@ -23,13 +23,14 @@ function ents.VRController:Initialize()
   self:AddEntityComponent(ents.COMPONENT_RENDER)
   
   if(CLIENT == true) then
-    self:AddEntityComponent(ents.COMPONENT_LOGIC,"InitializeLogic")
+    self:AddEntityComponent(ents.COMPONENT_LOGIC)
     self:AddEntityComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+	self:BindEvent(ents.LogicComponent.EVENT_ON_TICK,"OnTick")
   end
   
 	self:BindEvent(ents.TouchComponent.EVENT_ON_START_TOUCH,"OnStartTouch")
 	self:BindEvent(ents.TouchComponent.EVENT_CAN_TRIGGER,"CanTrigger")
-  self:BindEvent(ents.OwnableComponent.EVENT_ON_OWNER_CHANGED,"OnOwnerChanged")
+	self:BindEvent(ents.OwnableComponent.EVENT_ON_OWNER_CHANGED,"OnOwnerChanged")
 end
 
 function ents.VRController:InitializeModel(component)
