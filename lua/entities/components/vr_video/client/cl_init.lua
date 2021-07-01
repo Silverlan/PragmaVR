@@ -1,5 +1,5 @@
 --[[
-    Copyright (C) 2019  Florian Weischer
+    Copyright (C) 2021 Silverlan
 
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -81,6 +81,9 @@ function ents.VRVideo:OnRemove()
 	for eyeId,cb in pairs(self.m_hmdEyeRenderCallbacks) do
 		util.remove(cb)
 	end
+	for eyeId,scene in pairs(self.m_eyeScenes) do
+		util.remove(scene)
+	end
 end
 
 function ents.VRVideo:InitializeEye(eyeIdx)
@@ -88,7 +91,7 @@ function ents.VRVideo:InitializeEye(eyeIdx)
 	-- so we'll set up a custom scene. This way we can also still render
 	-- certain objects (e.g. 3D VR interfaces) more easily.
 	local gameScene = game.get_scene()
-	local scene = game.create_scene(prosper.SAMPLE_COUNT_1_BIT)
+	local scene = ents.create_scene(prosper.SAMPLE_COUNT_1_BIT)
 	scene:SetWorldEnvironment(gameScene:GetWorldEnvironment())
 	self.m_eyeScenes[eyeIdx] = scene
 

@@ -1,5 +1,5 @@
 --[[
-    Copyright (C) 2019  Florian Weischer
+    Copyright (C) 2021 Silverlan
 
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -17,23 +17,23 @@ end
 function ents.VRHMD:Initialize()
 	local toggleC = self:AddEntityComponent(ents.COMPONENT_TOGGLE)
 	self:AddEntityComponent(ents.COMPONENT_OWNABLE)
-	self:AddEntityComponent(ents.COMPONENT_LOGIC)
-	self:AddEntityComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+	local tdC = self:AddEntityComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+	tdC:SetUserInteractionState(ents.VRTrackedDevice.USER_INTERACTION_INACTIVE)
 	self:BindEvent(ents.ToggleComponent.EVENT_ON_TURN_ON,"OnTurnedOn")
 	self:BindEvent(ents.ToggleComponent.EVENT_ON_TURN_OFF,"OnTurnedOff")
-	self:BindEvent(ents.LogicComponent.EVENT_ON_TICK,"OnTick")
 	self.m_eyes = {}
 	self.m_trackedDevices = {}
 	self.m_deviceClassToDevice = {}
 	self.m_trackedDeviceIndexToTypeIndex = {}
 	self.m_refPose = phys.Transform()
-	self:SetDefaultGameRenderEnabled(not console.get_convar_bool("vr_hide_primary_game_scene"))
 	toggleC:TurnOn()
+
+	self:SetTickPolicy(ents.TICK_POLICY_ALWAYS)
 end
 function ents.VRHMD:InitializeEye(eyeIdx)
 	local ent = ents.create("vr_hmd_eye")
 	local eyeC = ent:GetComponent(ents.COMPONENT_VR_HMD_EYE)
-	if(eyeC ~= nil) then eyeC:SetEyeIndex(eyeIdx) end
+	if(eyeC ~= nil) then eyeC:Setup(self,eyeIdx) end
 	ent:Spawn()
 
 	self.m_eyes[eyeIdx] = eyeC
@@ -88,6 +88,7 @@ function ents.VRHMD:ActivateTrackedDevice(deviceId,type)
 		end
 	end
 	self:BroadcastEvent(ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATED,{tdC})
+	self:BroadcastEvent(ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATION_CHANGED,{tdC,true})
 end
 function ents.VRHMD:DeactivateTrackedDevice(deviceId)
 	local tdC = self:GetTrackedDevice(deviceId)
@@ -103,14 +104,35 @@ function ents.VRHMD:DeactivateTrackedDevice(deviceId)
 		physC:SetCollisionFilterGroup(phys.COLLISIONMASK_NO_COLLISION)
 	end
 	self:BroadcastEvent(ents.VRHMD.EVENT_ON_TRACKED_DEVICE_DEACTIVATED,{tdC})
+	self:BroadcastEvent(ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATION_CHANGED,{tdC,false})
 end
 function ents.VRHMD:GetEye(eyeIdx) return self.m_eyes[eyeIdx] end
+function ents.VRHMD:GetEyes() return self.m_eyes end
 function ents.VRHMD:IsHMDValid() return self.m_valid or false end
 function ents.VRHMD:GetErrorMessage() return self.m_errMsg end
 function ents.VRHMD:SetDefaultGameRenderEnabled(enabled)
 	self.m_defaultGameRenderEnabled = enabled
 	if(enabled) then util.remove(self.m_cbDrawMainScene)
 	else self:InitializeRenderCallbacks() end
+end
+function ents.VRHMD:InitializeDebugMirrorUi()
+	if(util.is_valid(self.m_debugMirrorUi)) then self.m_debugMirrorUi:Remove() end
+	local el = gui.get_base_element()
+	self.m_debugMirrorUi = gui.create("WIBase",el,0,0,el:GetWidth(),el:GetHeight(),0,0,1,1)
+	local elTexLeft = gui.create("WITexturedRect",self.m_debugMirrorUi,0,0,self.m_debugMirrorUi:GetWidth() /2,self.m_debugMirrorUi:GetHeight(),0,0,1,1)
+	local elTexRight = gui.create("WITexturedRect",self.m_debugMirrorUi,elTexLeft:GetRight(),0,self.m_debugMirrorUi:GetWidth() /2,self.m_debugMirrorUi:GetHeight(),0,0,1,1)
+
+	local textures = {elTexLeft,elTexRight}
+	for i,eyeIdx in ipairs({openvr.EYE_LEFT,openvr.EYE_RIGHT}) do
+		local eye = self.m_eyes[eyeIdx]
+		local elTex = textures[i]
+		if(eye:IsValid()) then
+			local renderer = eye:GetRenderer()
+			if(renderer ~= nil) then
+				elTex:SetTexture(renderer:GetPresentationTexture())
+			end
+		end
+	end
 end
 function ents.VRHMD:Setup()
 	if(self.m_setup or self:GetEntity():IsSpawned() == false) then return end
@@ -125,12 +147,14 @@ function ents.VRHMD:Setup()
 		return
 	end
 
-	local result = openvr.initialize()
-	if(result ~= openvr.INIT_ERROR_NONE) then
-		self.m_errMsg = openvr.init_error_to_string(result)
-		console.print_warning("Unable to initialize openvr library: " .. openvr.init_error_to_string(result))
-		self:GetEntity():RemoveSafely()
-		return
+	if(console.get_convar_bool("vr_debug_mode") == false) then
+		local result = openvr.initialize()
+		if(result ~= openvr.INIT_ERROR_NONE) then
+			self.m_errMsg = openvr.init_error_to_string(result)
+			console.print_warning("Unable to initialize openvr library: " .. openvr.init_error_to_string(result))
+			self:GetEntity():RemoveSafely()
+			return
+		end
 	end
 
 	self:InitializeEye(openvr.EYE_LEFT)
@@ -148,20 +172,20 @@ function ents.VRHMD:Setup()
 	self:InitializeRenderCallbacks()
 
 	self:BroadcastEvent(ents.VRHMD.EVENT_ON_HMD_INITIALIZED)
+	if(console.get_convar_bool("vr_debug_mode")) then self:InitializeDebugMirrorUi() end
 end
 function ents.VRHMD:InitializeRenderCallbacks()
 	if(self.m_valid ~= true) then return end
 	local toggleC = self:GetEntity():GetComponent(ents.COMPONENT_TOGGLE)
 	if(toggleC ~= nil and toggleC:IsTurnedOff()) then return end
-	if(util.is_valid(self.m_cbDrawMainScene) == false and self.m_defaultGameRenderEnabled ~= true) then
-		self.m_cbDrawMainScene = game.add_callback("DrawScene",function(drawSceneInfo)
-			return true -- Disable default rendering of the scene
-		end)
-	end
 	if(util.is_valid(self.m_cbDrawScenes) == false) then
 		self.m_cbDrawScenes = game.add_callback("RenderScenes",function(drawSceneInfo)
-			self:UpdateHMDPose()
 			self:RenderEyes(drawSceneInfo)
+		end)
+	end
+	if(util.is_valid(self.m_cbSubmitScenes) == false) then
+		self.m_cbSubmitScenes = game.add_callback("PostRenderScenes",function()
+			self:SubmitEyes()
 		end)
 	end
 end
@@ -183,7 +207,7 @@ function ents.VRHMD:UpdateHMDPose()
 	-- need it to update every frame, so we'll force it here.
 	if(ents.COMPONENT_PFM_ACTOR ~= nil) then
 		local pfmActorC = entCam:GetComponent(ents.COMPONENT_PFM_ACTOR)
-		if(pfmActorC ~= nil) then
+		if(pfmActorC ~= nil and entCam:HasComponent(ents.COMPONENT_POV_CAMERA) == false) then -- POV camera is handled separately TODO: This is a bit of a mess, clean it up!
 			pfmActorC:UpdatePose()
 		end
 	end
@@ -199,24 +223,38 @@ function ents.VRHMD:UpdateHMDPose()
 		pose = pose *hmdPose
 	end
 
-	local pos = pose:GetOrigin()
-	local rot = pose:GetRotation()
-	--rot = rot:GetInverse()
-	
 	local ent = self:GetEntity()
-	ent:SetPos(pos)
-	ent:SetRotation(rot)
+	ent:SetPose(pose)
 
-	entCam:SetPos(pos)
-	entCam:SetRotation(rot)
+	--entCam:SetPos(pos)
+	--entCam:SetRotation(rot)
+
+	for eyeIdx,eye in pairs(self.m_eyes) do
+		if(eye:IsValid()) then
+			eye:GetEntity():SetPose(pose)
+		end
+	end
 
 	self:InvokeEventCallbacks(ents.VRHMD.EVENT_ON_HMD_POSE_UPDATED,{pose})
 end
+local cvHideGameScene = console.get_convar("vr_hide_primary_game_scene")
 function ents.VRHMD:RenderEyes(drawSceneInfo)
+	game.set_default_game_render_enabled(not cvHideGameScene:GetBool())
+	-- local t = time.time_since_epoch()
 	openvr.update_poses()
+	-- local tt = time.time_since_epoch() -t
+	-- print(tt /1000000.0)
+	self:UpdateHMDPose()
 	for eyeIdx,eye in pairs(self.m_eyes) do
 		if(eye:IsValid()) then
 			eye:DrawScene(drawSceneInfo)
+		end
+	end
+end
+function ents.VRHMD:SubmitEyes()
+	for eyeIdx,eye in pairs(self.m_eyes) do
+		if(eye:IsValid()) then
+			eye:SubmitScene()
 		end
 	end
 	prosper.flush()
@@ -237,8 +275,9 @@ function ents.VRHMD:OnTurnedOn()
 	openvr.set_hmd_view_enabled(true)
 end
 function ents.VRHMD:OnTurnedOff()
-	util.remove(self.m_cbDrawMainScene)
 	util.remove(self.m_cbDrawScenes)
+	util.remove(self.m_cbSubmitScenes)
+	game.set_default_game_render_enabled(true)
 	if(openvr == nil) then return end
 	openvr.set_hmd_view_enabled(false)
 end
@@ -270,7 +309,7 @@ function ents.VRHMD:AddTrackedDevice(ent,trackedDeviceIndex,type)
 	self.m_trackedDevices[trackedDeviceIndex] = tdC
 
 	if(tdC ~= nil) then
-		tdC:Setup(trackedDeviceIndex,type,typeIndex)
+		tdC:Setup(self,trackedDeviceIndex,type,typeIndex)
 	end
 	if(ent ~= self:GetEntity()) then ent:SetOwner(self:GetEntity()) end
 
@@ -302,12 +341,14 @@ function ents.VRHMD:OnRemove()
 	for deviceId,tdC in pairs(self.m_trackedDevices) do
 		if(tdC:IsValid()) then tdC:GetEntity():Remove() end
 	end
-	util.remove(self.m_cbDrawMainScene)
 	util.remove(self.m_cbDrawScenes)
+	util.remove(self.m_cbSubmitScenes)
+	util.remove(self.m_debugMirrorUi)
 end
 ents.COMPONENT_VR_HMD = ents.register_component("vr_hmd",ents.VRHMD)
 ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ADDED = ents.register_component_event(ents.COMPONENT_VR_HMD,"controller_added")
 ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATED = ents.register_component_event(ents.COMPONENT_VR_HMD,"tracked_device_activated")
 ents.VRHMD.EVENT_ON_TRACKED_DEVICE_DEACTIVATED = ents.register_component_event(ents.COMPONENT_VR_HMD,"tracked_device_deactivated")
+ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATION_CHANGED = ents.register_component_event(ents.COMPONENT_VR_HMD,"tracked_device_activation_changed")
 ents.VRHMD.EVENT_ON_HMD_INITIALIZED = ents.register_component_event(ents.COMPONENT_VR_HMD,"hmd_initialized")
 ents.VRHMD.EVENT_ON_HMD_POSE_UPDATED = ents.register_component_event(ents.COMPONENT_VR_HMD,"hmd_pose_updated")

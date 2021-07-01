@@ -1,5 +1,5 @@
 --[[
-    Copyright (C) 2019  Florian Weischer
+    Copyright (C) 2021 Silverlan
 
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -23,9 +23,8 @@ function ents.VRController:Initialize()
   self:AddEntityComponent(ents.COMPONENT_RENDER)
   
   if(CLIENT == true) then
-    self:AddEntityComponent(ents.COMPONENT_LOGIC)
     self:AddEntityComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-	self:BindEvent(ents.LogicComponent.EVENT_ON_TICK,"OnTick")
+	self:SetTickPolicy(ents.TICK_POLICY_ALWAYS)
   end
   
 	self:BindEvent(ents.TouchComponent.EVENT_ON_START_TOUCH,"OnStartTouch")
@@ -76,7 +75,7 @@ function ents.VRController:GetPlayerOwner()
 	local hmdC = (owner ~= nil) and owner:GetComponent(ents.COMPONENT_VR_HMD) or nil
 	if(hmdC == nil) then return end
 	owner = hmdC:GetOwner()
-	if(owner:HasComponent(ents.COMPONENT_PLAYER) == false) then return end
+	if(util.is_valid(owner) == false or owner:HasComponent(ents.COMPONENT_PLAYER) == false) then return end
 	return owner
 end
 

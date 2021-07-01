@@ -1,5 +1,5 @@
 --[[
-    Copyright (C) 2019  Florian Weischer
+    Copyright (C) 2021 Silverlan
 
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -8,7 +8,12 @@
 
 util.register_class("util.VideoPlayer",util.CallbackHandler)
 util.VideoPlayer.create = function()
-	local r = engine.load_library("mpv/pr_mpv")
+	local lib = "mpv/pr_mpv"
+	if(engine.library_exists(lib) == false) then
+		console.print_warning("MPV Module not found! Video player will not be available!")
+		return
+	end
+	local r = engine.load_library(lib)
 	if(r ~= true) then
 		console.print_warning("Unable to load MPV module: " .. r)
 		return

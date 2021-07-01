@@ -9,3 +9,76 @@
 console.register_variable("vr_debug_show_controller_location_pointers","0",0,"If enabled, a line will be drawn in front of the camera pointing to the vr controller(s).")
 console.register_variable("vr_hide_primary_game_scene","1",0,"If enabled, the default game render will be disabled to save rendering resources.")
 console.register_variable("vr_apply_hmd_pose_to_camera","1",0,"If enabled, the HMD pose will be applied to the game camera.")
+console.register_variable("vr_freeze_tracked_device_poses","0",0,"If enabled, all tracked vr devices will freeze in their current places.")
+
+console.register_command("vr_tracked_devices",function()
+    for ent in ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE)}) do
+        local trC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+        local type = trC:GetType()
+        local strType = ""
+        if(type == openvr.TRACKED_DEVICE_CLASS_HMD) then strType = "HDM"
+        elseif(type == openvr.TRACKED_DEVICE_CLASS_CONTROLLER) then strType = "Controller"
+        elseif(type == openvr.TRACKED_DEVICE_CLASS_GENERIC_TRACKER) then strType = "Generic Tracker"
+        elseif(type == openvr.TRACKED_DEVICE_CLASS_TRACKING_REFERENCE) then strType = "Tracking Reference"
+        else strType = "Unknown" end
+        print("Found tracked device: " .. tostring(ent) .. " of type " .. strType)
+    end
+end)
+console.register_command("vr_hmd_pose",function()
+    local ent = ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_HMD)})()
+    if(ent == nil) then
+        console.print_warning("No HMD found!")
+        return
+    end
+    local pose = ent:GetPose()
+    print("World Space: ",pose)
+
+    local trC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+    if(trC == nil) then return end
+    local pose,vel = trC:GetDevicePose()
+    print("Head Space: ",pose)
+    print("Velocity: ",vel)
+end)
+console.register_variable("vr_lock_hmd_pos_to_camera","0",0,"If enabled, relative HMD motion will be ignored.")
+console.register_variable("vr_lock_hmd_ang_to_camera","0",0,"If enabled, relative HMD rotation will be ignored.")
+console.register_variable("vr_render_both_eyes_if_hmd_inactive","0",0,"If enabled, both eyes will be rendered even if the HMD is not put on.")
+console.register_variable("vr_debug_mode","0",0,"Enables the vr developer debug mode.")
+console.register_variable("vr_resolution_override","",0,"Forces VR to run with this resolution instead of the one recommended by the API.")
+console.register_variable("vr_mirror_eye_view","-1",0,"Mirrors the image of the specified eye onto the game viewport (-1 = disabled, 0 = left eye, 1 = right eye)")
+
+console.register_command("vr_tracked_devices",function()
+    for ent in ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE)}) do
+        local trC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+        local type = trC:GetType()
+        local strType = ""
+        if(type == openvr.TRACKED_DEVICE_CLASS_HMD) then strType = "HDM"
+        elseif(type == openvr.TRACKED_DEVICE_CLASS_CONTROLLER) then strType = "Controller"
+        elseif(type == openvr.TRACKED_DEVICE_CLASS_GENERIC_TRACKER) then strType = "Generic Tracker"
+        elseif(type == openvr.TRACKED_DEVICE_CLASS_TRACKING_REFERENCE) then strType = "Tracking Reference"
+        else strType = "Unknown" end
+        print("Found tracked device: " .. tostring(ent) .. " of type " .. strType)
+    end
+end)
+console.register_command("vr_reset_body",function()
+    local ent = ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_BODY)})()
+    if(ent == nil) then
+        console.print_warning("No VR body found!")
+        return
+    end
+    local vrBodyC = ent:GetComponent(ents.COMPONENT_VR_BODY)
+    vrBodyC:ResetIk()
+end)
+console.register_command("vr_recording_mode",function()
+    console.run("vr_render_both_eyes_if_hmd_inactive","0")
+    console.run("vr_debug_mode","0")
+    --console.run("vr_mirror_eye_view","0")
+    console.run("vr_hide_primary_game_scene","1")
+    console.run("cl_render_frustum_culling_enabled","0")
+
+    local entHmd = ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_HMD)})()
+    if(entHmd ~= nil) then
+        local hmdC = entHmd:GetComponent(ents.COMPONENT_VR_HMD)
+        local eyeC = hmdC:GetEye(openvr.EYE_RIGHT)
+        if(util.is_valid(eyeC)) then eyeC:SetRenderEnabled(false) end
+    end
+end)

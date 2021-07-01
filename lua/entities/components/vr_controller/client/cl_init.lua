@@ -1,5 +1,5 @@
 --[[
-    Copyright (C) 2019  Florian Weischer
+    Copyright (C) 2021 Silverlan
 
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -123,14 +123,19 @@ function ents.VRController:OnRemove()
 	util.remove(self.m_laser)
 end
 
+function ents.VRController:GetLaserRaycastData()
+	local ent = self:GetEntity()
+	return ent:GetPos(),-ent:GetForward()
+end
+
 function ents.VRController:OnTick(dt)
 	self:UpdateOrientation()
-	if(self.m_cursorEnabled) then
+	if(self.m_cursorEnabled and self.m_laserEnabled and util.is_valid(self.m_laser)) then
 		local owner = self:GetPlayerOwner()
 		local charComponent = (owner ~= nil) and owner:GetComponent(ents.COMPONENT_CHARACTER) or nil
 		if(charComponent ~= nil) then
-			local pos = self:GetEntity():GetPos()
-			local dir = self:GetEntity():GetForward()
+			local pos,dir = self:GetLaserRaycastData()
+			dir = -dir
 			local posDst = pos +dir *2048.0
 
 			local srcPos = self:GetEntity():GetPos()

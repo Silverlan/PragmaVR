@@ -1,5 +1,5 @@
 --[[
-    Copyright (C) 2019  Florian Weischer
+    Copyright (C) 2021 Silverlan
 
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -19,12 +19,13 @@ function ents.VRTrackedDevice:Initialize()
 	self:GetEntity():TurnOff()
 end
 
-function ents.VRTrackedDevice:Setup(trackedDeviceIndex,type,typeIndex)
+function ents.VRTrackedDevice:Setup(hmdC,trackedDeviceIndex,type,typeIndex)
+	self.m_hmdC = hmdC
 	self:SetTrackedDeviceIndex(trackedDeviceIndex)
 	self:SetType(type)
 	self:SetTypeIndex(typeIndex)
 end
-
+function ents.VRTrackedDevice:GetHMD() return self.m_hmdC end
 function ents.VRTrackedDevice:SetTrackedDeviceIndex(trackedDeviceIndex) self.m_trackedDeviceIndex = trackedDeviceIndex end
 function ents.VRTrackedDevice:GetTrackedDeviceIndex() return self.m_trackedDeviceIndex or -1 end
 function ents.VRTrackedDevice:SetType(type) self.m_type = type end
@@ -39,23 +40,38 @@ function ents.VRTrackedDevice:SetUserInteractionState(state)
 	self.m_userInteractionState = state
 	self:BroadcastEvent(ents.VRTrackedDevice.EVENT_ON_USER_INTERACTION_STATE_CHANGED,{state})
 end
+
+local frozenPoses
+console.add_change_callback("vr_freeze_tracked_device_poses",function(old,new)
+	if(toboolean(new) == false) then
+		frozenPoses = nil
+		return
+	end
+	frozenPoses = nil
+	local r = {}
+	for ent in ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE)}) do
+		local vrC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+		local pose,vel = vrC:GetDevicePose()
+		if(pose ~= nil) then
+			r[vrC:GetTrackedDeviceIndex()] = {pose,vel}
+		end
+	end
+	frozenPoses = r
+end)
+
+local cvLockHmdPos = console.get_convar("vr_lock_hmd_pos_to_camera")
+local cvLockHmdAng = console.get_convar("vr_lock_hmd_ang_to_camera")
 function ents.VRTrackedDevice:GetDevicePose()
 	local trackedDeviceId = self:GetTrackedDeviceIndex()
+	if(frozenPoses ~= nil and frozenPoses[trackedDeviceId] ~= nil) then
+		return unpack(frozenPoses[trackedDeviceId])
+	end
 	local pose,vel = openvr.get_pose(trackedDeviceId)
 	if(pose == nil) then return end
-	--local rot = pose:GetRotation()
-	--local ang = rot:ToEulerAngles()
-	--ang = EulerAngles(-ang.r,ang.y,ang.p)
-	--ang.y = -ang.y
-	--ang.p = -ang.p
-	--ang.r = -ang.r
-	--ang = EulerAngles(0,-ang.y,0)
-	--pose:SetOrigin(Vector())
-	--if(self:IsController() == false) then print(ang) end
-	--if(self:IsController()) then print(ang) end
-	--rot = ang:ToQuaternion()
-	--pose:SetRotation(rot)
-	--print(self:IsController(),pose)
+	if(self:IsHMD()) then
+		if(cvLockHmdPos:GetBool()) then pose:SetOrigin(Vector()) end
+		if(cvLockHmdAng:GetBool()) then pose:SetRotation(Quaternion()) end
+	end
 	return pose,vel
 end
 ents.COMPONENT_VR_TRACKED_DEVICE = ents.register_component("vr_tracked_device",ents.VRTrackedDevice)

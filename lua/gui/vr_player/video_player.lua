@@ -1,5 +1,5 @@
 --[[
-    Copyright (C) 2019  Florian Weischer
+    Copyright (C) 2021 Silverlan
 
     This Source Code Form is subject to the terms of the Mozilla Public
     License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -12,12 +12,12 @@ include("/gui/vr_view.lua")
 
 util.register_class("gui.VRVideoPlayer",gui.Base,gui.VRView)
 function gui.VRVideoPlayer.get_video_settings(projectData)
-	local settingsBlock = projectData:FindBlock("settings")
+	local settingsBlock = projectData:Get("settings")
 	if(settingsBlock == nil) then return false end
-	local videoBlock = settingsBlock:FindBlock("video")
-	if(videoBlock == nil or videoBlock:GetBool("enabled") == false) then return false end
-	local fileName = videoBlock:HasValue("file") and videoBlock:GetString("file") or nil
-	local url = videoBlock:HasValue("url") and videoBlock:GetString("url") or nil
+	local videoBlock = settingsBlock:Get("video")
+	if(videoBlock == nil or (videoBlock:GetValue("enabled",udm.TYPE_BOOLEAN) or false) == false) then return false end
+	local fileName = videoBlock:GetValue("file",udm.TYPE_STRING)
+	local url = videoBlock:GetValue("url",udm.TYPE_STRING)
 	if(fileName ~= nil) then
 		fileName = "projects/" .. fileName
 		if(file.exists(fileName) == false) then return false end
@@ -28,12 +28,12 @@ function gui.VRVideoPlayer.get_video_settings(projectData)
 	videoSettings.url = url
 
 	local renderFlags = shader.VREquirectangular.RENDER_FLAG_NONE
-	local type = videoBlock:GetString("type")
+	local type = videoBlock:GetValue("type",udm.TYPE_STRING)
 	if(type == "equirectangular") then
 		renderFlags = bit.bor(renderFlags,shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_BIT)
-		local mode = videoBlock:GetString("mode")
+		local mode = videoBlock:GetValue("mode",udm.TYPE_STRING)
 		if(mode == "stereo") then
-			local stereoAlignment = videoBlock:GetString("stereo_alignment")
+			local stereoAlignment = videoBlock:GetValue("stereo_alignment",udm.TYPE_STRING)
 			if(stereoAlignment == "vertical") then
 				renderFlags = bit.bor(renderFlags,shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_VERTICAL_BIT)
 			else
@@ -41,17 +41,17 @@ function gui.VRVideoPlayer.get_video_settings(projectData)
 			end
 		end
 
-		local horizontalDegrees = videoBlock:GetFloat("horizontal_degrees",360.0)
+		local horizontalDegrees = videoBlock:GetValue("horizontal_degrees",udm.TYPE_FLOAT) or 360.0
 		videoSettings.horizontalRange = horizontalDegrees
 	end
 
-	local previewBlock = videoBlock:FindBlock("preview")
+	local previewBlock = videoBlock:Get("preview")
 	if(previewBlock ~= nil) then
 		videoSettings.preview = {
-			startTime = previewBlock:GetFloat("start_time"),
-			pitch = previewBlock:GetFloat("pitch"),
-			yaw = previewBlock:GetFloat("yaw"),
-			zoomLevel = previewBlock:GetFloat("zoom",1.0)
+			startTime = previewBlock:GetValue("start_time",udm.TYPE_FLOAT) or 0.0,
+			pitch = previewBlock:GetValue("pitch",udm.TYPE_FLOAT) or 0.0,
+			yaw = previewBlock:GetValue("yaw",udm.TYPE_FLOAT) or 0.0,
+			zoomLevel = previewBlock:GetValue("zoom",udm.TYPE_FLOAT) or 1.0
 		}
 	end
 
