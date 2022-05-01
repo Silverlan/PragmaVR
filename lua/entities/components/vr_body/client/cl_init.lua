@@ -179,13 +179,13 @@ function ents.VrBody:UpdateTrackedDeviceVisibility()
 	local primC = self.m_hmdC:GetPrimaryController()
 	if(util.is_valid(primC)) then
 		local renderC = primC:GetEntity():GetComponent(ents.COMPONENT_RENDER)
-		if(renderC ~= nil) then renderC:SetRenderMode(ents.RenderComponent.RENDERMODE_NONE) end
+		if(renderC ~= nil) then renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE) end
 	end
 
 	local secC = self.m_hmdC:GetSecondaryController()
 	if(util.is_valid(secC)) then
 		local renderC = secC:GetEntity():GetComponent(ents.COMPONENT_RENDER)
-		if(renderC ~= nil) then renderC:SetRenderMode(ents.RenderComponent.RENDERMODE_NONE) end
+		if(renderC ~= nil) then renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE) end
 	end
 end
 
@@ -202,7 +202,7 @@ function ents.VrBody:UpdateTrackedDevices()
 		vrIk:SetIkControllerPriority("upper_body",10) -- Upper body has to be evaluated before the arms!
 
 		local renderC = self.m_hmdC:GetEntity():GetComponent(ents.COMPONENT_RENDER)
-		if(renderC ~= nil) then renderC:SetRenderMode(ents.RenderComponent.RENDERMODE_NONE) end
+		if(renderC ~= nil) then renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE) end
 		self:UpdateRelativeIkUpperBodyPose()
 	end
 
@@ -229,7 +229,7 @@ function ents.VrBody:SetLeftArm(boneChain)
 	local vrIk = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
 	if(vrIk == nil) then return end
 
-	vrIk:AddIkController("left_arm",boneChain,phys.Transform(Vector(),EulerAngles(-90,90,0):ToQuaternion()))
+	vrIk:AddIkController("left_arm",boneChain,math.Transform(Vector(),EulerAngles(-90,90,0):ToQuaternion()))
 	vrIk:SetEffectorPos("left_arm",Vector(0,0,0))
 	vrIk:SetIkControllerEnabled("left_arm",false)
 end
@@ -238,7 +238,7 @@ function ents.VrBody:SetRightArm(boneChain)
 	local vrIk = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
 	if(vrIk == nil) then return end
 
-	vrIk:AddIkController("right_arm",boneChain,phys.Transform(Vector(),EulerAngles(90,-90,0):ToQuaternion()))
+	vrIk:AddIkController("right_arm",boneChain,math.Transform(Vector(),EulerAngles(90,-90,0):ToQuaternion()))
 	vrIk:SetEffectorPos("right_arm",Vector(0,0,0))
 	vrIk:SetIkControllerEnabled("right_arm",false)
 end

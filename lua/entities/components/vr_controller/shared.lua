@@ -95,34 +95,18 @@ function ents.VRController:SetControllerTransform(pos,rot,vel)
 	if(hmdC == nil) then return end
 	local hmdPose = hmdC:GetReferencePose()
 	hmdPose = hmdPose:Copy()
-	--hmdPose:SetRotation(Quaternion())
-	--hmdPose:SetOrigin(Vector())--Vector(2.20439, 86.3184, -2.29969))
 
 	local ent = ents.get_local_player():GetEntity():GetComponent(ents.COMPONENT_CHARACTER)
-	--hmdPose:SetPosition(ent:GetViewRotation())
-	--hmdPose:SetRotation(ent:GetShootPos()) -- TODO
-
-	--pos = Vector(-pos.x,pos.y,-pos.z)---pos.x,pos.y,-pos.z)
-	--print(pos)
-	--pos.z = pos.z *2
-	--pos = Vector(0,0,100)
-	--pos.z = pos.z *10
---	pos:Rotate(EulerAngles(0,-90,0):ToQuaternion())
 
 	local ang = rot:ToEulerAngles()
 
-	--pos.x = -pos.x
-	--pos.y = 0
-	pos.z = pos.z -- -4
-	--pos.x = -pos.x -- -2
-	pos.y = pos.y -- -0.81
+	pos.z = pos.z
+	pos.y = pos.y
 	rot = EulerAngles(0,180,0):ToQuaternion() *EulerAngles(-ang.p,ang.y,-ang.r):ToQuaternion()--ctrlPose:GetRotation()
-	local ctrlPose = phys.Transform(pos,rot)
-	--ctrlPose:SetOrigin(Vector(0,0,100))--_vr_rot:GetForward() *100)
+	local ctrlPose = math.Transform(pos,rot)
 	ctrlPose = hmdPose *ctrlPose
 	pos = ctrlPose:GetOrigin()
 	rot = ctrlPose:GetRotation()
-	--print(pos)
 
 	pos = pos --+ents.get_players()[1]:GetViewForward() *100.0 -- TODO: Controller owner
 
@@ -153,13 +137,13 @@ function ents.VRController:SetControllerTransform(pos,rot,vel)
   -- TODO: Clean this up
   --pos,rot = util.local_to_world(_vr_pos,_vr_rot,pos,rot)
   local _vr_pos = Vector() -- TODO?
-  local hmdPose = phys.Transform(_vr_pos,Quaternion())--_vr_rot)
+  local hmdPose = math.Transform(_vr_pos,Quaternion())--_vr_rot)
   pos = Vector(-pos.x,pos.y,-pos.z)---pos.x,pos.y,-pos.z)
   pos:Rotate(EulerAngles(0,-90,0):ToQuaternion())
 
   local ang = rot:ToEulerAngles()
   
-  local ctrlPose = phys.Transform(pos,Quaternion())
+  local ctrlPose = math.Transform(pos,Quaternion())
   ctrlPose = hmdPose *ctrlPose
   pos = ctrlPose:GetOrigin()
   rot = EulerAngles(0,90,0):ToQuaternion() *EulerAngles(ang.p,ang.y,ang.r):ToQuaternion()--ctrlPose:GetRotation()

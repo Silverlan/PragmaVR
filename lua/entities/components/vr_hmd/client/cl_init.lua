@@ -10,10 +10,6 @@ include_component("vr_tracked_device")
 
 util.register_class("ents.VRHMD",BaseEntityComponent)
 
-function ents.VRHMD:__init()
-	BaseEntityComponent.__init(self)
-end
-
 function ents.VRHMD:Initialize()
 	local toggleC = self:AddEntityComponent(ents.COMPONENT_TOGGLE)
 	self:AddEntityComponent(ents.COMPONENT_OWNABLE)
@@ -25,7 +21,7 @@ function ents.VRHMD:Initialize()
 	self.m_trackedDevices = {}
 	self.m_deviceClassToDevice = {}
 	self.m_trackedDeviceIndexToTypeIndex = {}
-	self.m_refPose = phys.Transform()
+	self.m_refPose = math.Transform()
 	toggleC:TurnOn()
 
 	self:SetTickPolicy(ents.TICK_POLICY_ALWAYS)
@@ -68,6 +64,8 @@ function ents.VRHMD:OnTick()
 		elseif(ev.type == openvr.EVENT_TRACKED_DEVICE_USER_INTERACTION_ENDED) then
 			local tdC = self:GetTrackedDevice(ev.trackedDeviceIndex)
 			if(util.is_valid(tdC)) then tdC:SetUserInteractionState(ents.VRTrackedDevice.USER_INTERACTION_INACTIVE) end
+		elseif(ev.type == openvr.EVENT_TRACKED_DEVICE_ROLE_CHANGED) then
+			-- Doesn't seem to get called?
 		end
 	end
 end
@@ -79,7 +77,7 @@ function ents.VRHMD:ActivateTrackedDevice(deviceId,type)
 	tdC:GetEntity():TurnOn()
 	local ent = tdC:GetEntity()
 	local renderC = ent:GetComponent(ents.COMPONENT_RENDER)
-	if(renderC ~= nil) then renderC:SetRenderMode(ents.RenderComponent.RENDERMODE_WORLD) end
+	if(renderC ~= nil) then renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_WORLD) end
 	local physC = ent:GetComponent(ents.COMPONENT_PHYSICS)
 	if(physC ~= nil) then
 		if(self.m_deviceCollisionGroup ~= nil and self.m_deviceCollisionGroup[deviceId] ~= nil) then
@@ -96,7 +94,7 @@ function ents.VRHMD:DeactivateTrackedDevice(deviceId)
 	tdC:GetEntity():TurnOff()
 	local ent = tdC:GetEntity()
 	local renderC = ent:GetComponent(ents.COMPONENT_RENDER)
-	if(renderC ~= nil) then renderC:SetRenderMode(ents.RenderComponent.RENDERMODE_NONE) end
+	if(renderC ~= nil) then renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE) end
 	local physC = ent:GetComponent(ents.COMPONENT_PHYSICS)
 	if(physC ~= nil) then
 		self.m_deviceCollisionGroup = self.m_deviceCollisionGroup or {}
@@ -193,9 +191,10 @@ function ents.VRHMD:GetCamera()
 	return game.get_scene():GetActiveCamera()
 end
 function ents.VRHMD:SetHMDPoseOffset(offsetPose) self.m_offsetPose = offsetPose end
-function ents.VRHMD:GetHMDPoseOffset() return self.m_offsetPose or phys.Transform() end
+function ents.VRHMD:GetHMDPoseOffset() return self.m_offsetPose or math.Transform() end
 function ents.VRHMD:GetReferencePose() return self.m_refPose end
 local cvApplyHMDPose = console.get_convar("vr_apply_hmd_pose_to_camera")
+local cvUpdateTrackedDevicePoses = console.get_convar("vr_update_tracked_device_poses")
 function ents.VRHMD:UpdateHMDPose()
 	local tdC = self:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
 	local gameCam = self:GetCamera()
@@ -213,37 +212,35 @@ function ents.VRHMD:UpdateHMDPose()
 	end
 	--
 
-	self.m_refPose = entCam:GetPose()
-	local pose = self.m_refPose
-	if(cvApplyHMDPose:GetBool()) then
-		local hmdPose = tdC:GetDevicePose()
-		if(hmdPose == nil) then return end
-		hmdPose:SetRotation(hmdPose:GetRotation())
-		if(self.m_offsetPose ~= nil) then hmdPose = self.m_offsetPose *hmdPose end
-		pose = pose *hmdPose
-	end
-
-	local ent = self:GetEntity()
-	ent:SetPose(pose)
-
-	--entCam:SetPos(pos)
-	--entCam:SetRotation(rot)
-
-	for eyeIdx,eye in pairs(self.m_eyes) do
-		if(eye:IsValid()) then
-			eye:GetEntity():SetPose(pose)
+	if(cvUpdateTrackedDevicePoses:GetBool() == true) then
+		self.m_refPose = entCam:GetPose()
+		local pose = self.m_refPose
+		if(cvApplyHMDPose:GetBool()) then
+			local hmdPose = tdC:GetDevicePose()
+			if(hmdPose == nil) then return end
+			hmdPose:SetRotation(hmdPose:GetRotation())
+			if(self.m_offsetPose ~= nil) then hmdPose = self.m_offsetPose *hmdPose end
+			pose = pose *hmdPose
 		end
-	end
 
-	self:InvokeEventCallbacks(ents.VRHMD.EVENT_ON_HMD_POSE_UPDATED,{pose})
+		local ent = self:GetEntity()
+		ent:SetPose(pose)
+
+		--entCam:SetPos(pos)
+		--entCam:SetRotation(rot)
+
+		for eyeIdx,eye in pairs(self.m_eyes) do
+			if(eye:IsValid()) then
+				eye:GetEntity():SetPose(pose)
+			end
+		end
+		self:InvokeEventCallbacks(ents.VRHMD.EVENT_ON_HMD_POSE_UPDATED,{pose})
+	end
 end
 local cvHideGameScene = console.get_convar("vr_hide_primary_game_scene")
 function ents.VRHMD:RenderEyes(drawSceneInfo)
 	game.set_default_game_render_enabled(not cvHideGameScene:GetBool())
-	-- local t = time.time_since_epoch()
 	openvr.update_poses()
-	-- local tt = time.time_since_epoch() -t
-	-- print(tt /1000000.0)
 	self:UpdateHMDPose()
 	for eyeIdx,eye in pairs(self.m_eyes) do
 		if(eye:IsValid()) then
@@ -298,10 +295,31 @@ function ents.VRHMD:GetTrackedDevices() return self.m_trackedDevices end
 function ents.VRHMD:AddTrackedDevice(ent,trackedDeviceIndex,type)
 	self.m_deviceClassToDevice[type] = self.m_deviceClassToDevice[type] or {}
 
+	local function find_free_type_index()
+		local typeIndex = 1
+		for i,_ in pairs(self.m_deviceClassToDevice[type]) do
+			typeIndex = math.max(typeIndex,i +1)
+		end
+		return typeIndex
+	end
+
 	local tdC = ent:AddComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
 	local typeIndex = self.m_trackedDeviceIndexToTypeIndex[trackedDeviceIndex]
 	if(typeIndex == nil) then
-		table.insert(self.m_deviceClassToDevice[type],tdC)
+		local role = openvr.get_controller_role(trackedDeviceIndex)
+		local typeIndex
+		if(role == openvr.TRACKED_CONTROLLER_ROLE_RIGHT_HAND) then
+			typeIndex = 1
+			if(self.m_deviceClassToDevice[type][typeIndex] ~= nil) then
+				self.m_deviceClassToDevice[type][find_free_type_index()] = self.m_deviceClassToDevice[type][typeIndex]
+			end
+		elseif(role == openvr.TRACKED_CONTROLLER_ROLE_LEFT_HAND) then
+			typeIndex = 2
+			if(self.m_deviceClassToDevice[type][typeIndex] ~= nil) then
+				self.m_deviceClassToDevice[type][find_free_type_index()] = self.m_deviceClassToDevice[type][typeIndex]
+			end
+		else typeIndex = find_free_type_index() end
+		self.m_deviceClassToDevice[type][typeIndex] = tdC
 		typeIndex = #self.m_deviceClassToDevice[type]
 		self.m_trackedDeviceIndexToTypeIndex[trackedDeviceIndex] = typeIndex
 	else self.m_deviceClassToDevice[type][typeIndex] = tdC end

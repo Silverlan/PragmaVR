@@ -40,11 +40,13 @@ function shader.VREquirectangular:InitializePipeline(pipelineInfo,pipelineIdx)
 	pipelineInfo:SetPrimitiveTopology(prosper.PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 end
 function shader.VREquirectangular:Draw(drawCmd,dsTex,invVp,horizontalRange,zoom,flags)
-	if(self:IsValid() == false or self:RecordBeginDraw(drawCmd) == false) then return end
+	if(self:IsValid() == false) then return end
+	local bindState = shader.BindState(drawCmd)
+	if(self:RecordBeginDraw(bindState) == false) then return end
 	flags = flags or shader.VREquirectangular.RENDER_FLAG_NONE
 	local buf,numVerts = prosper.util.get_square_vertex_uv_buffer()
-	self:RecordBindVertexBuffers({buf})
-	self:RecordBindDescriptorSet(dsTex)
+	self:RecordBindVertexBuffers(bindState,{buf})
+	self:RecordBindDescriptorSet(bindState,dsTex)
 
 	local uvFactor = Vector2(1,1)
 	local uvOffset = Vector2(0,0)
@@ -67,10 +69,10 @@ function shader.VREquirectangular:Draw(drawCmd,dsTex,invVp,horizontalRange,zoom,
 	self.m_dsPushConstants:WriteFloat(360.0 /horizontalRange)
 	self.m_dsPushConstants:WriteFloat(zoom)
 	self.m_dsPushConstants:WriteUInt32(shaderFlags)
-	self:RecordPushConstants(self.m_dsPushConstants)
+	self:RecordPushConstants(bindState,self.m_dsPushConstants)
 
-	self:RecordDraw(prosper.util.get_square_vertex_count())
-	self:RecordEndDraw()
+	self:RecordDraw(bindState,prosper.util.get_square_vertex_count())
+	self:RecordEndDraw(bindState)
 end
 shader.register("vr_equirectangular",shader.VREquirectangular)
 

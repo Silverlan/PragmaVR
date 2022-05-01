@@ -15,8 +15,12 @@ function ents.VRTrackedDevice:__init()
 	BaseEntityComponent.__init(self)
 end
 
+local cvForceAlwaysActive = console.get_convar("vr_force_always_active")
 function ents.VRTrackedDevice:Initialize()
 	self:GetEntity():TurnOff()
+
+	self.m_forceActive = false
+	self:SetForceActive(cvForceAlwaysActive:GetBool())
 end
 
 function ents.VRTrackedDevice:Setup(hmdC,trackedDeviceIndex,type,typeIndex)
@@ -34,10 +38,19 @@ function ents.VRTrackedDevice:SetTypeIndex(idx) self.m_typeIndex = idx end
 function ents.VRTrackedDevice:GetTypeIndex() return self.m_typeIndex end
 function ents.VRTrackedDevice:IsController() return self.m_type == openvr.TRACKED_DEVICE_CLASS_CONTROLLER end
 function ents.VRTrackedDevice:IsHMD() return self.m_type == openvr.TRACKED_DEVICE_CLASS_HMD end
+function ents.VRTrackedDevice:SetForceActive(forceActive)
+	if(forceActive == self.m_forceActive) then return end
+	self.m_forceActive = forceActive
+	self:SetUserInteractionState(self.m_userInteractionState)
+end
 function ents.VRTrackedDevice:IsUserInteractionActive() return self:GetUserInteractionState() == ents.VRTrackedDevice.USER_INTERACTION_ACTIVE end
-function ents.VRTrackedDevice:GetUserInteractionState() return self.m_userInteractionState or ents.VRTrackedDevice.USER_INTERACTION_INACTIVE end
+function ents.VRTrackedDevice:GetUserInteractionState()
+	if(self.m_forceActive) then return ents.VRTrackedDevice.USER_INTERACTION_ACTIVE end
+	return self.m_userInteractionState or ents.VRTrackedDevice.USER_INTERACTION_INACTIVE
+end
 function ents.VRTrackedDevice:SetUserInteractionState(state)
 	self.m_userInteractionState = state
+	state = self.m_forceActive and ents.VRTrackedDevice.USER_INTERACTION_ACTIVE or state
 	self:BroadcastEvent(ents.VRTrackedDevice.EVENT_ON_USER_INTERACTION_STATE_CHANGED,{state})
 end
 
@@ -61,11 +74,13 @@ end)
 
 local cvLockHmdPos = console.get_convar("vr_lock_hmd_pos_to_camera")
 local cvLockHmdAng = console.get_convar("vr_lock_hmd_ang_to_camera")
+local cvUpdateTrackedDevicePoses = console.get_convar("vr_update_tracked_device_poses")
 function ents.VRTrackedDevice:GetDevicePose()
 	local trackedDeviceId = self:GetTrackedDeviceIndex()
 	if(frozenPoses ~= nil and frozenPoses[trackedDeviceId] ~= nil) then
 		return unpack(frozenPoses[trackedDeviceId])
 	end
+	if(cvUpdateTrackedDevicePoses:GetBool() == false) then return end
 	local pose,vel = openvr.get_pose(trackedDeviceId)
 	if(pose == nil) then return end
 	if(self:IsHMD()) then

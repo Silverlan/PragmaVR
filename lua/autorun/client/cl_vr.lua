@@ -6,17 +6,39 @@
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ]]
 
-console.register_variable("vr_debug_show_controller_location_pointers","0",0,"If enabled, a line will be drawn in front of the camera pointing to the vr controller(s).")
-console.register_variable("vr_hide_primary_game_scene","1",0,"If enabled, the default game render will be disabled to save rendering resources.")
-console.register_variable("vr_apply_hmd_pose_to_camera","1",0,"If enabled, the HMD pose will be applied to the game camera.")
-console.register_variable("vr_freeze_tracked_device_poses","0",0,"If enabled, all tracked vr devices will freeze in their current places.")
+include("/vr/vr_recording.lua")
 
+console.register_variable("vr_debug_show_controller_location_pointers",udm.TYPE_BOOLEAN,false,0,"If enabled, a line will be drawn in front of the camera pointing to the vr controller(s).")
+console.register_variable("vr_hide_primary_game_scene",udm.TYPE_BOOLEAN,true,0,"If enabled, the default game render will be disabled to save rendering resources.")
+console.register_variable("vr_apply_hmd_pose_to_camera",udm.TYPE_BOOLEAN,true,0,"If enabled, the HMD pose will be applied to the game camera.")
+console.register_variable("vr_freeze_tracked_device_poses",udm.TYPE_BOOLEAN,false,0,"If enabled, all tracked vr devices will freeze in their current places.")
+console.register_variable("vr_update_tracked_device_poses",udm.TYPE_BOOLEAN,true,0,"If disabled, tracked device poses will not be updated.")
+
+local g_debug_hmd
+console.register_command("vr_debug_launch",function()
+    if(util.is_valid(g_debug_hmd)) then
+        util.remove(g_debug_hmd)
+        return
+    end
+    local pl = ents.get_local_player()
+    if(pl == nil) then return end
+    local vrHmd = ents.create("vr_hmd")
+    vrHmd:Spawn()
+
+    local hmdC = vrHmd:GetComponent(ents.COMPONENT_VR_HMD)
+    if(hmdC ~= nil) then hmdC:SetOwner(pl:GetEntity()) end
+    g_debug_hmd = vrHmd
+
+    console.run("vr_hide_primary_game_scene","0")
+    -- console.run("vr_lock_hmd_pos_to_camera","1")
+    -- console.run("vr_lock_hmd_ang_to_camera","1")
+end)
 console.register_command("vr_tracked_devices",function()
     for ent in ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE)}) do
         local trC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
         local type = trC:GetType()
         local strType = ""
-        if(type == openvr.TRACKED_DEVICE_CLASS_HMD) then strType = "HDM"
+        if(type == openvr.TRACKED_DEVICE_CLASS_HMD) then strType = "HMD"
         elseif(type == openvr.TRACKED_DEVICE_CLASS_CONTROLLER) then strType = "Controller"
         elseif(type == openvr.TRACKED_DEVICE_CLASS_GENERIC_TRACKER) then strType = "Generic Tracker"
         elseif(type == openvr.TRACKED_DEVICE_CLASS_TRACKING_REFERENCE) then strType = "Tracking Reference"
@@ -39,19 +61,26 @@ console.register_command("vr_hmd_pose",function()
     print("Head Space: ",pose)
     print("Velocity: ",vel)
 end)
-console.register_variable("vr_lock_hmd_pos_to_camera","0",0,"If enabled, relative HMD motion will be ignored.")
-console.register_variable("vr_lock_hmd_ang_to_camera","0",0,"If enabled, relative HMD rotation will be ignored.")
-console.register_variable("vr_render_both_eyes_if_hmd_inactive","0",0,"If enabled, both eyes will be rendered even if the HMD is not put on.")
-console.register_variable("vr_debug_mode","0",0,"Enables the vr developer debug mode.")
-console.register_variable("vr_resolution_override","",0,"Forces VR to run with this resolution instead of the one recommended by the API.")
-console.register_variable("vr_mirror_eye_view","-1",0,"Mirrors the image of the specified eye onto the game viewport (-1 = disabled, 0 = left eye, 1 = right eye)")
+console.register_variable("vr_lock_hmd_pos_to_camera",udm.TYPE_BOOLEAN,false,0,"If enabled, relative HMD motion will be ignored.")
+console.register_variable("vr_lock_hmd_ang_to_camera",udm.TYPE_BOOLEAN,false,0,"If enabled, relative HMD rotation will be ignored.")
+console.register_variable("vr_render_both_eyes_if_hmd_inactive",udm.TYPE_BOOLEAN,false,0,"If enabled, both eyes will be rendered even if the HMD is not put on.")
+console.register_variable("vr_force_always_active",udm.TYPE_BOOLEAN,false,0,"If enabled, HMD will never be put into inactive state.")
+console.register_variable("vr_debug_mode",udm.TYPE_BOOLEAN,false,0,"Enables the vr developer debug mode.")
+console.register_variable("vr_resolution_override",udm.TYPE_STRING,"",0,"Forces VR to run with this resolution instead of the one recommended by the API.")
+console.register_variable("vr_mirror_eye_view",udm.TYPE_INT8,-1,0,"Mirrors the image of the specified eye onto the game viewport (-1 = disabled, 0 = left eye, 1 = right eye)")
+
+console.add_change_callback("vr_force_always_active",function(old,new)
+    for ent in ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE)}) do
+        ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE):SetForceActive(toboolean(new))
+    end
+end)
 
 console.register_command("vr_tracked_devices",function()
     for ent in ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE)}) do
         local trC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
         local type = trC:GetType()
         local strType = ""
-        if(type == openvr.TRACKED_DEVICE_CLASS_HMD) then strType = "HDM"
+        if(type == openvr.TRACKED_DEVICE_CLASS_HMD) then strType = "HMD"
         elseif(type == openvr.TRACKED_DEVICE_CLASS_CONTROLLER) then strType = "Controller"
         elseif(type == openvr.TRACKED_DEVICE_CLASS_GENERIC_TRACKER) then strType = "Generic Tracker"
         elseif(type == openvr.TRACKED_DEVICE_CLASS_TRACKING_REFERENCE) then strType = "Tracking Reference"

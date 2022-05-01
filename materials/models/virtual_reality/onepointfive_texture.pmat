@@ -1,0 +1,15 @@
+"pbr"
+{
+	"textures"
+	{
+		$string albedo_map "models/virtual_reality/onepointfive_texture"
+		$string rma_map "pbr/rma_neutral"
+	}
+
+	"properties"
+	{
+		$float metalness_factor "0.000000"
+		$float roughness_factor "1.000000"
+		$string surfacematerial "plastic"
+	}
+}

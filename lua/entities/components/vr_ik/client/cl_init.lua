@@ -75,7 +75,7 @@ function Component:AddIkController(name,ikChain,effectorOffsetPose)
 	self.m_ikControllers[name] = {
 		trackedDevice = trackedDevice,
 		effector = self:CreateEffector(ikControllerIdx,effectorIdx),
-		effectorOffsetPose = effectorOffsetPose or phys.Transform()
+		effectorOffsetPose = effectorOffsetPose or math.Transform()
 	}
 	table.insert(self.m_ikControllerNames,name)
 	self.m_ikControllerPriorityDirty = true
@@ -194,7 +194,7 @@ function Component:UpdateIkTrees()
 			ikData.ikSolver:Solve(targetPose)
 
 			local rootIkPose = ikData.ikSolver:GetGlobalTransform(0)
-			local rootPose = rootAnimPose *rootIkPose--phys.ScaledTransform(rootAnimPose:GetOrigin(),rootIkPose:GetRotation(),rootAnimPose:GetScale())
+			local rootPose = rootAnimPose *rootIkPose--math.ScaledTransform(rootAnimPose:GetOrigin(),rootIkPose:GetRotation(),rootAnimPose:GetScale())
 			animC:SetGlobalBonePose(ikData.ikChain[1],rootPose)
 
 
@@ -226,7 +226,7 @@ function Component:UpdateIkTrees()
 				end
 			end
 
-			local parentPose = phys.ScaledTransform()
+			local parentPose = math.ScaledTransform()
 			for i,boneId in ipairs(ikData.ikChain) do
 				local ikPose = ikData.ikSolver:GetGlobalTransform(i -1)
 				local relPose = parentPose:GetInverse() *ikPose
