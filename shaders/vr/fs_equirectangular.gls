@@ -32,7 +32,7 @@ void main()
 
 		float d = dot(dir,vec3(1,0,0));
 		float margin = 0.1;
-		if(d < margin)
+		if(d < margin && (u_pushConstants.shaderFlags &SHADER_FLAG_ENABLE_MARGIN) != 0)
 		{
 			float f = max(d,0.0) /margin;
 			colorMod.rgb = vec3(f,f,f);

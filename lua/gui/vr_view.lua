@@ -57,7 +57,10 @@ function gui.VRView:DrawVR(drawCmd,dsTex)
 	v:Set(3,2,0)
 	local vp = cam:GetProjectionMatrix() *v
 	vp:Inverse()
-	local r = self:GetVRShader():Draw(drawCmd,dsTex,vp,self.m_horizontalRange:Get(),self.m_zoomLevel:Get(),self.m_renderFlags:Get())
+
+	local renderFlags = self.m_renderFlags:Get()
+	if(self:GetHorizontalRange() <= 180.0) then renderFlags = bit.bor(renderFlags,shader.VREquirectangular.RENDER_FLAG_ENABLE_MARGIN_BIT) end
+	local r = self:GetVRShader():Draw(drawCmd,dsTex,vp,self.m_horizontalRange:Get(),self.m_zoomLevel:Get(),renderFlags)
 end
 function gui.VRView:SetCursorInputMovementEnabled(enabled,elFocus)
 	if(enabled == false) then

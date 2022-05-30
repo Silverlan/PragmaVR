@@ -11,6 +11,7 @@
 
 #define SHADER_FLAG_NONE 0
 #define SHADER_FLAG_2D_BIT 1
+#define SHADER_FLAG_ENABLE_MARGIN 2
 
 layout(LAYOUT_PUSH_CONSTANTS()) uniform PushConstants {
 	mat4 invViewProjection; // view-projection matrix without translation

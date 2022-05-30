@@ -16,9 +16,11 @@ shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_BIT = 1
 shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_HORIZONTAL_BIT = bit.lshift(shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_BIT,1)
 shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_VERTICAL_BIT = bit.lshift(shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_HORIZONTAL_BIT,1)
 shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_RIGHT_EYE_BIT = bit.lshift(shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_VERTICAL_BIT,1)
+shader.VREquirectangular.RENDER_FLAG_ENABLE_MARGIN_BIT = bit.lshift(shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_RIGHT_EYE_BIT,1)
 
 local SHADER_FLAG_NONE = 0
 local SHADER_FLAG_2D_BIT = 1
+local SHADER_FLAG_ENABLE_MARGIN = 2
 
 function shader.VREquirectangular:__init()
 	shader.BaseGraphics.__init(self)
@@ -61,6 +63,10 @@ function shader.VREquirectangular:Draw(drawCmd,dsTex,invVp,horizontalRange,zoom,
 			if(bit.band(flags,shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_STEREO_RIGHT_EYE_BIT) ~= 0) then uvOffset.y = 0.5 end
 		end
 	else shaderFlags = bit.bor(shaderFlags,SHADER_FLAG_2D_BIT) end
+
+	if(bit.band(flags,shader.VREquirectangular.RENDER_FLAG_ENABLE_MARGIN_BIT) ~= 0) then
+		shaderFlags = bit.bor(shaderFlags,SHADER_FLAG_ENABLE_MARGIN)
+	end
 
 	self.m_dsPushConstants:Seek(0)
 	self.m_dsPushConstants:WriteMat4(invVp)
