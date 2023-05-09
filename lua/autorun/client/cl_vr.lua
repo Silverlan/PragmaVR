@@ -44,6 +44,12 @@ console.register_command("vr_tracked_devices",function()
         elseif(type == openvr.TRACKED_DEVICE_CLASS_TRACKING_REFERENCE) then strType = "Tracking Reference"
         else strType = "Unknown" end
         print("Found tracked device: " .. tostring(ent) .. " of type " .. strType)
+        local pose,vel = openvr.get_pose(trC:GetTrackedDeviceIndex())
+        if(pose ~= nil) then
+        	print("\tPos: ",pose:GetOrigin())
+        	print("\tAng: ",pose:GetRotation():ToEulerAngles())
+        	print("\tVel: ",vel)
+        end
     end
 end)
 console.register_command("vr_hmd_pose",function()
@@ -75,19 +81,6 @@ console.add_change_callback("vr_force_always_active",function(old,new)
     end
 end)
 
-console.register_command("vr_tracked_devices",function()
-    for ent in ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE)}) do
-        local trC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-        local type = trC:GetType()
-        local strType = ""
-        if(type == openvr.TRACKED_DEVICE_CLASS_HMD) then strType = "HMD"
-        elseif(type == openvr.TRACKED_DEVICE_CLASS_CONTROLLER) then strType = "Controller"
-        elseif(type == openvr.TRACKED_DEVICE_CLASS_GENERIC_TRACKER) then strType = "Generic Tracker"
-        elseif(type == openvr.TRACKED_DEVICE_CLASS_TRACKING_REFERENCE) then strType = "Tracking Reference"
-        else strType = "Unknown" end
-        print("Found tracked device: " .. tostring(ent) .. " of type " .. strType)
-    end
-end)
 console.register_command("vr_reset_body",function()
     local ent = ents.iterator({ents.IteratorFilterComponent(ents.COMPONENT_VR_BODY)})()
     if(ent == nil) then
