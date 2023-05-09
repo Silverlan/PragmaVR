@@ -6,7 +6,7 @@
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ]]
 
-util.register_class("ents.VrBody",BaseEntityComponent)
+util.register_class("ents.VrBody", BaseEntityComponent)
 
 function ents.VrBody:__init()
 	BaseEntityComponent.__init(self)
@@ -19,7 +19,7 @@ function ents.VrBody:Initialize()
 	--[[vrIkC:AddEventCallback(ents.VrIk.EVENT_ON_IK_TREES_UPDATED,function()
 		self:HideHeadBone()
 	end)]]
-	self.m_cbPreIkTreesUpdates = vrIkC:AddEventCallback(ents.VrIk.EVENT_PRE_IK_TREES_UPDATED,function()
+	self.m_cbPreIkTreesUpdates = vrIkC:AddEventCallback(ents.VrIk.EVENT_PRE_IK_TREES_UPDATED, function()
 		self:AdjustUpperBody()
 	end)
 end
@@ -34,12 +34,15 @@ end
 function ents.VrBody:OnEntitySpawn()
 	--[[local mdlC = self:GetEntity():GetComponent(ents.COMPONENT_PFM_MODEL)
 	if(mdlC == nil) then return end
-	mdlC:SetAnimationFrozen(true)]] -- TODO: Remove this once the issue with ik on animated entities is fixed
+	mdlC:SetAnimationFrozen(true)]]
+	-- TODO: Remove this once the issue with ik on animated entities is fixed
 end
 
 function ents.VrBody:ResetIk()
 	local vrIkC = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
-	if(vrIkC == nil) then return end
+	if vrIkC == nil then
+		return
+	end
 	vrIkC:ResetIkTree("upper_body")
 	vrIkC:ResetIkTree("left_arm")
 	vrIkC:ResetIkTree("right_arm")
@@ -48,7 +51,9 @@ end
 function ents.VrBody:AdjustUpperBody()
 	local ent = self:GetEntity()
 	local vrIkC = ent:GetComponent(ents.COMPONENT_VR_IK)
-	if(vrIkC == nil or util.is_valid(self.m_povCamera) == false) then return end
+	if vrIkC == nil or util.is_valid(self.m_povCamera) == false then
+		return
+	end
 	-- By default the ik component will place the effector position of the upper_body (i.e. the head/neck)
 	-- at the position of the tracked device (i.e. the HMD), which is usually the same as the position of the camera
 	-- and the position of the head/neck bone of the character.
@@ -60,18 +65,20 @@ function ents.VrBody:AdjustUpperBody()
 	-- For this reason, we'll ignore the tracked device position and set the effector position to always be at
 	-- the exact position of the head/neck bone (after the animation has been applied, which resets the previous ik step).
 	local animC = ent:GetAnimatedComponent()
-	if(animC ~= nil) then
+	if animC ~= nil then
 		local boneChain = vrIkC:GetIkControllerBoneChain("upper_body")
-		if(boneChain ~= nil) then
+		if boneChain ~= nil then
 			local effectorBoneId = boneChain[#boneChain]
 			local pose = self.m_povCamera:CalcBaseCameraPose() -- animC:GetGlobalBonePose(effectorBoneId)
-			if(pose ~= nil) then
+			if pose ~= nil then
 				-- TODO: This is a bit of a mess, clean this up!
 				local td = vrIkC:GetTrackedDevice("upper_body")
 				local tdC = util.is_valid(td) and td:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE) or nil
-				if(tdC ~= nil) then
+				if tdC ~= nil then
 					local rotStatic = self.m_povCamera:GetStaticRotation()
-					if(rotStatic ~= nil) then pose:SetRotation(rotStatic) end
+					if rotStatic ~= nil then
+						pose:SetRotation(rotStatic)
+					end
 					-- Note: This will only work if the relative pose of the pov_camera only applies a position offset and no rotation offset
 
 					--pose:TranslateLocal(tdC:GetDevicePose():GetOrigin())
@@ -80,7 +87,7 @@ function ents.VrBody:AdjustUpperBody()
 					-- when the player is looking down with the HMD (which would cause the effector position to be placed inside the body).
 					local chain = vrIkC:GetIkControllerBoneChain("upper_body")
 					local rootPose = animC:GetGlobalBonePose(chain[1])
-					local n = pose:GetOrigin() -rootPose:GetOrigin()
+					local n = pose:GetOrigin() - rootPose:GetOrigin()
 					n:Normalize()
 					--pose:TranslateGlobal(n *5.0)
 					--vrIkC:SetEffectorPose("upper_body",pose)
@@ -115,10 +122,14 @@ function ents.VrBody:UpdateRelativeIkUpperBodyPose()
 end
 
 function ents.VrBody:HideHeadBone()
-	if(self.m_headBone == nil) then return end
+	if self.m_headBone == nil then
+		return
+	end
 	local animC = self:GetEntity():GetComponent(ents.COMPONENT_ANIMATED)
-	if(animC == nil) then return end
-	animC:SetBoneScale(self.m_headBone,Vector(0,0,0))
+	if animC == nil then
+		return
+	end
+	animC:SetBoneScale(self.m_headBone, Vector(0, 0, 0))
 	--self:AdjustUpperBody()
 end
 
@@ -126,16 +137,23 @@ function ents.VrBody:SetPovCamera(cam)
 	util.remove(self.m_povCamOnAvailabilityChangedCb)
 	self.m_povCamera = cam
 	local vrIkC = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
-	if(vrIkC ~= nil) then
+	if vrIkC ~= nil then
 		local enabled = true
-		if(cam ~= nil) then enabled = cam:IsEnabled() end
+		if cam ~= nil then
+			enabled = cam:IsEnabled()
+		end
 		vrIkC:SetEnabled(enabled)
 	end
-	if(cam ~= nil) then
-		self.m_povCamOnAvailabilityChangedCb = cam:AddEventCallback(ents.PovCamera.EVENT_ON_AVAILABILITY_CHANGED,function(enabled)
-			local vrIkC = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
-			if(vrIkC ~= nil) then vrIkC:SetEnabled(enabled) end
-		end)
+	if cam ~= nil then
+		self.m_povCamOnAvailabilityChangedCb = cam:AddEventCallback(
+			ents.PovCamera.EVENT_ON_AVAILABILITY_CHANGED,
+			function(enabled)
+				local vrIkC = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
+				if vrIkC ~= nil then
+					vrIkC:SetEnabled(enabled)
+				end
+			end
+		)
 	end
 	self:UpdateRelativeIkUpperBodyPose()
 	self:UpdatePovCameraAvailability()
@@ -145,15 +163,21 @@ function ents.VrBody:SetHmd(hmd)
 	util.remove(self.m_cbOnTrackedDeviceAdded)
 	util.remove(self.m_cbOnTrackedDeviceActivated)
 	self.m_hmdC = hmd
-	self.m_cbOnTrackedDeviceAdded = hmd:AddEventCallback(ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ADDED,function(trackedDevice)
-		self:UpdateTrackedDevices()
-	end)
-	self.m_cbOnTrackedDeviceActivated = hmd:AddEventCallback(ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATED,function(trackedDevice)
-		self:UpdateTrackedDeviceVisibility()
-	end)
+	self.m_cbOnTrackedDeviceAdded = hmd:AddEventCallback(
+		ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ADDED,
+		function(trackedDevice)
+			self:UpdateTrackedDevices()
+		end
+	)
+	self.m_cbOnTrackedDeviceActivated = hmd:AddEventCallback(
+		ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATED,
+		function(trackedDevice)
+			self:UpdateTrackedDeviceVisibility()
+		end
+	)
 	local tdC = hmd:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-	if(tdC ~= nil) then
-		tdC:AddEventCallback(ents.VRTrackedDevice.EVENT_ON_USER_INTERACTION_STATE_CHANGED,function(state)
+	if tdC ~= nil then
+		tdC:AddEventCallback(ents.VRTrackedDevice.EVENT_ON_USER_INTERACTION_STATE_CHANGED, function(state)
 			self:UpdatePovCameraAvailability()
 		end)
 	end
@@ -161,106 +185,132 @@ function ents.VrBody:SetHmd(hmd)
 	self:UpdateTrackedDeviceVisibility()
 	self:UpdatePovCameraAvailability()
 end
-function ents.VrBody:GetHmd() return self.m_hmdC end
+function ents.VrBody:GetHmd()
+	return self.m_hmdC
+end
 
 function ents.VrBody:UpdatePovCameraAvailability()
-	if(util.is_valid(self.m_povCamera) == false) then return end
+	if util.is_valid(self.m_povCamera) == false then
+		return
+	end
 	local enablePovCamera = true
-	if(util.is_valid(self.m_hmdC)) then
+	if util.is_valid(self.m_hmdC) then
 		local tdC = self.m_hmdC:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-		if(tdC ~= nil and tdC:IsUserInteractionActive() == false) then enablePovCamera = false end
+		if tdC ~= nil and tdC:IsUserInteractionActive() == false then
+			enablePovCamera = false
+		end
 	end
 	self.m_povCamera:SetEnabled(enablePovCamera)
 end
 
 function ents.VrBody:UpdateTrackedDeviceVisibility()
 	local vrIk = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
-	if(util.is_valid(self.m_hmdC) == false or vrIk == nil) then return end
+	if util.is_valid(self.m_hmdC) == false or vrIk == nil then
+		return
+	end
 	local primC = self.m_hmdC:GetPrimaryController()
-	if(util.is_valid(primC)) then
+	if util.is_valid(primC) then
 		local renderC = primC:GetEntity():GetComponent(ents.COMPONENT_RENDER)
-		if(renderC ~= nil) then renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE) end
+		if renderC ~= nil then
+			renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE)
+		end
 	end
 
 	local secC = self.m_hmdC:GetSecondaryController()
-	if(util.is_valid(secC)) then
+	if util.is_valid(secC) then
 		local renderC = secC:GetEntity():GetComponent(ents.COMPONENT_RENDER)
-		if(renderC ~= nil) then renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE) end
+		if renderC ~= nil then
+			renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE)
+		end
 	end
 end
 
 function ents.VrBody:UpdateTrackedDevices()
 	local vrIk = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
-	if(util.is_valid(self.m_hmdC) == false or vrIk == nil) then return end
-	vrIk:SetIkControllerEnabled("left_arm",false)
-	vrIk:SetIkControllerEnabled("right_arm",false)
+	if util.is_valid(self.m_hmdC) == false or vrIk == nil then
+		return
+	end
+	vrIk:SetIkControllerEnabled("left_arm", false)
+	vrIk:SetIkControllerEnabled("right_arm", false)
 
 	local trackedDevice = self.m_hmdC:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-	if(trackedDevice ~= nil) then
-		vrIk:LinkIkControllerToTrackedDevice("upper_body",self.m_hmdC)
-		vrIk:SetIkControllerEnabled("upper_body",true)
-		vrIk:SetIkControllerPriority("upper_body",10) -- Upper body has to be evaluated before the arms!
+	if trackedDevice ~= nil then
+		vrIk:LinkIkControllerToTrackedDevice("upper_body", self.m_hmdC)
+		vrIk:SetIkControllerEnabled("upper_body", true)
+		vrIk:SetIkControllerPriority("upper_body", 10) -- Upper body has to be evaluated before the arms!
 
 		local renderC = self.m_hmdC:GetEntity():GetComponent(ents.COMPONENT_RENDER)
-		if(renderC ~= nil) then renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE) end
+		if renderC ~= nil then
+			renderC:SetSceneRenderPass(game.SCENE_RENDER_PASS_NONE)
+		end
 		self:UpdateRelativeIkUpperBodyPose()
 	end
 
 	local primC = self.m_hmdC:GetPrimaryController()
-	if(util.is_valid(primC)) then
+	if util.is_valid(primC) then
 		local trackedDevice = primC:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-		if(trackedDevice ~= nil) then
-			vrIk:LinkIkControllerToTrackedDevice("right_arm",trackedDevice)
-			vrIk:SetIkControllerEnabled("right_arm",true)
+		if trackedDevice ~= nil then
+			vrIk:LinkIkControllerToTrackedDevice("right_arm", trackedDevice)
+			vrIk:SetIkControllerEnabled("right_arm", true)
 		end
 	end
 
 	local secC = self.m_hmdC:GetSecondaryController()
-	if(util.is_valid(secC)) then
+	if util.is_valid(secC) then
 		local trackedDevice = secC:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-		if(trackedDevice ~= nil) then
-			vrIk:LinkIkControllerToTrackedDevice("left_arm",trackedDevice)
-			vrIk:SetIkControllerEnabled("left_arm",true)
+		if trackedDevice ~= nil then
+			vrIk:LinkIkControllerToTrackedDevice("left_arm", trackedDevice)
+			vrIk:SetIkControllerEnabled("left_arm", true)
 		end
 	end
 end
 
 function ents.VrBody:SetLeftArm(boneChain)
 	local vrIk = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
-	if(vrIk == nil) then return end
+	if vrIk == nil then
+		return
+	end
 
-	vrIk:AddIkController("left_arm",boneChain,math.Transform(Vector(),EulerAngles(-90,90,0):ToQuaternion()))
-	vrIk:SetEffectorPos("left_arm",Vector(0,0,0))
-	vrIk:SetIkControllerEnabled("left_arm",false)
+	vrIk:AddIkController("left_arm", boneChain, math.Transform(Vector(), EulerAngles(-90, 90, 0):ToQuaternion()))
+	vrIk:SetEffectorPos("left_arm", Vector(0, 0, 0))
+	vrIk:SetIkControllerEnabled("left_arm", false)
 end
 
 function ents.VrBody:SetRightArm(boneChain)
 	local vrIk = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
-	if(vrIk == nil) then return end
+	if vrIk == nil then
+		return
+	end
 
-	vrIk:AddIkController("right_arm",boneChain,math.Transform(Vector(),EulerAngles(90,-90,0):ToQuaternion()))
-	vrIk:SetEffectorPos("right_arm",Vector(0,0,0))
-	vrIk:SetIkControllerEnabled("right_arm",false)
+	vrIk:AddIkController("right_arm", boneChain, math.Transform(Vector(), EulerAngles(90, -90, 0):ToQuaternion()))
+	vrIk:SetEffectorPos("right_arm", Vector(0, 0, 0))
+	vrIk:SetIkControllerEnabled("right_arm", false)
 end
 
 function ents.VrBody:SetHeadBone(boneId)
 	self.m_headBone = nil
-	if(type(boneId) == "string") then
+	if type(boneId) == "string" then
 		local mdl = self:GetEntity():GetModel()
-		if(mdl == nil) then return end
+		if mdl == nil then
+			return
+		end
 		boneId = mdl:LookupBone(boneId)
 	end
 	self.m_headBone = (boneId ~= -1) and boneId or nil
 end
 
-function ents.VrBody:GetHeadBoneId() return self.m_headBone end
+function ents.VrBody:GetHeadBoneId()
+	return self.m_headBone
+end
 
 function ents.VrBody:SetUpperBody(boneChain)
 	local vrIk = self:GetEntity():GetComponent(ents.COMPONENT_VR_IK)
-	if(vrIk == nil) then return end
+	if vrIk == nil then
+		return
+	end
 
-	vrIk:AddIkController("upper_body",boneChain)
-	vrIk:SetEffectorPos("upper_body",Vector(0,0,0))
-	vrIk:SetIkControllerEnabled("upper_body",false)
+	vrIk:AddIkController("upper_body", boneChain)
+	vrIk:SetEffectorPos("upper_body", Vector(0, 0, 0))
+	vrIk:SetIkControllerEnabled("upper_body", false)
 end
-ents.COMPONENT_VR_BODY = ents.register_component("vr_body",ents.VrBody)
+ents.COMPONENT_VR_BODY = ents.register_component("vr_body", ents.VrBody)

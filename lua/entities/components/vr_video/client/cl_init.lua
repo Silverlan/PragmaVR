@@ -8,7 +8,7 @@
 
 include("/gui/renderimage.lua")
 
-util.register_class("ents.VRVideo",BaseEntityComponent)
+util.register_class("ents.VRVideo", BaseEntityComponent)
 
 function ents.VRVideo:__init()
 	BaseEntityComponent.__init(self)
@@ -19,7 +19,7 @@ function ents.VRVideo:Initialize()
 	self.m_hmdEyeRenderCallbacks = {}
 	self.m_eyeScenes = {}
 	self:AddEntityComponent("vr_hmd")
-	self:BindEvent(ents.VRHMD.EVENT_ON_HMD_INITIALIZED,"OnHMDInitialized")
+	self:BindEvent(ents.VRHMD.EVENT_ON_HMD_INITIALIZED, "OnHMDInitialized")
 
 	self:InitializeEye(openvr.EYE_LEFT)
 	self:InitializeEye(openvr.EYE_RIGHT)
@@ -27,18 +27,25 @@ end
 
 function ents.VRVideo:OnEntitySpawn()
 	local hmdC = self:GetEntity():GetComponent(ents.COMPONENT_VR_HMD)
-	if(hmdC == nil or hmdC:IsHMDValid() == false) then return end
+	if hmdC == nil or hmdC:IsHMDValid() == false then
+		return
+	end
 	self:OnHMDInitialized(hmdC)
 end
 
 function ents.VRVideo:OnHMDInitialized(hmd)
-	for _,eyeId in ipairs({openvr.EYE_LEFT,openvr.EYE_RIGHT}) do
+	for _, eyeId in ipairs({ openvr.EYE_LEFT, openvr.EYE_RIGHT }) do
 		local eyeC = hmd:GetEye(eyeId)
-		if(eyeC ~= nil) then
-			self.m_hmdEyeRenderCallbacks[eyeId] = eyeC:AddEventCallback(ents.VRHMDEye.EVENT_ON_RENDER_EYE,function(scene,drawSceneInfo) self:OnRenderEye(eyeC,scene,drawSceneInfo) end)
+		if eyeC ~= nil then
+			self.m_hmdEyeRenderCallbacks[eyeId] = eyeC:AddEventCallback(
+				ents.VRHMDEye.EVENT_ON_RENDER_EYE,
+				function(scene, drawSceneInfo)
+					self:OnRenderEye(eyeC, scene, drawSceneInfo)
+				end
+			)
 
 			local scene = self.m_eyeScenes[eyeId]
-			if(scene ~= nil) then
+			if scene ~= nil then
 				scene:SetRenderer(eyeC:GetRenderer())
 				scene:SetActiveCamera(eyeC:GetCamera())
 			end
@@ -46,28 +53,34 @@ function ents.VRVideo:OnHMDInitialized(hmd)
 	end
 end
 
-function ents.VRVideo:GetScene(eyeIdx) return self.m_eyeScenes[eyeIdx] end
+function ents.VRVideo:GetScene(eyeIdx)
+	return self.m_eyeScenes[eyeIdx]
+end
 
-function ents.VRVideo:OnRenderEye(eyeC,scene,drawSceneInfo)
+function ents.VRVideo:OnRenderEye(eyeC, scene, drawSceneInfo)
 	local idx = eyeC:GetEyeIndex()
 	local el = self.m_eyeGUIElements[idx]
-	if(util.is_valid(el) == false) then return end
+	if util.is_valid(el) == false then
+		return
+	end
 	scene = self.m_eyeScenes[idx]
 	drawSceneInfo.scene = scene
 	local renderer = scene:GetRenderer()
 
 	local drawInfo = gui.Base.DrawInfo()
-	drawInfo.offset = math.Vector2i(0,0)
-	drawInfo.size = math.Vector2i(el:GetWidth(),el:GetHeight())
+	drawInfo.offset = math.Vector2i(0, 0)
+	drawInfo.size = math.Vector2i(el:GetWidth(), el:GetHeight())
 	drawInfo.transform = Mat4(1.0)
 	local rpInfo = prosper.RenderPassInfo(renderer:GetRenderTarget())
 	rpInfo:SetClearValues({
-		prosper.ClearValue(),prosper.ClearValue(),prosper.ClearValue()
+		prosper.ClearValue(),
+		prosper.ClearValue(),
+		prosper.ClearValue(),
 	})
 	-- We'll render the frames as the background of our scene
 	-- TODO: Image barriers
 	el:ApplyImageProcessing(drawSceneInfo) -- Update the image with our current HMD head transform
-	if(drawSceneInfo.commandBuffer:RecordBeginRenderPass(rpInfo)) then
+	if drawSceneInfo.commandBuffer:RecordBeginRenderPass(rpInfo) then
 		-- drawSceneInfo.commandBuffer:RecordClearAttachment(renderer:GetRenderTarget():GetTexture():GetImage(),Color.Lime,0)
 		el:Draw(drawInfo)
 		drawSceneInfo.commandBuffer:RecordEndRenderPass()
@@ -75,13 +88,13 @@ function ents.VRVideo:OnRenderEye(eyeC,scene,drawSceneInfo)
 end
 
 function ents.VRVideo:OnRemove()
-	for eyeIdx,el in pairs(self.m_eyeGUIElements) do
+	for eyeIdx, el in pairs(self.m_eyeGUIElements) do
 		util.remove(el)
 	end
-	for eyeId,cb in pairs(self.m_hmdEyeRenderCallbacks) do
+	for eyeId, cb in pairs(self.m_hmdEyeRenderCallbacks) do
 		util.remove(cb)
 	end
-	for eyeId,scene in pairs(self.m_eyeScenes) do
+	for eyeId, scene in pairs(self.m_eyeScenes) do
 		util.remove(scene)
 	end
 end
@@ -104,25 +117,29 @@ function ents.VRVideo:InitializeEye(eyeIdx)
 	local hmdC = self:GetEntity():GetComponent(ents.COMPONENT_VR_HMD)
 	local eyeC = (hmdC ~= nil) and hmdC:GetEye(eyeIdx) or nil
 	local camC = (eyeC ~= nil) and eyeC:GetEntity():GetComponent(ents.COMPONENT_CAMERA) or nil
-	if(camC == nil) then return end
+	if camC == nil then
+		return
+	end
 	elTex:SetVRCamera(camC)
 	local res = eyeC:GetResolution()
 	elTex:SetWidth(res.x)
 	elTex:SetHeight(res.y)
 end
 
-function ents.VRVideo:SetEyeTexture(eye,vrView)
+function ents.VRVideo:SetEyeTexture(eye, vrView)
 	local el = self.m_eyeGUIElements[eye]
-	if(util.is_valid(el) == false) then return end
+	if util.is_valid(el) == false then
+		return
+	end
 	el:SetTexture(vrView:GetTexture())
 
 	el:GetZoomLevelProperty():Unlink()
 	el:GetRenderFlagsProperty():Unlink()
 	el:GetHorizontalRangeProperty():Unlink()
-	if(vrView ~= nil) then
+	if vrView ~= nil then
 		el:GetZoomLevelProperty():Link(vrView:GetZoomLevelProperty())
 		el:GetRenderFlagsProperty():Link(vrView:GetRenderFlagsProperty())
 		el:GetHorizontalRangeProperty():Link(vrView:GetHorizontalRangeProperty())
 	end
 end
-ents.COMPONENT_VR_VIDEO = ents.register_component("vr_video",ents.VRVideo)
+ents.COMPONENT_VR_VIDEO = ents.register_component("vr_video", ents.VRVideo)

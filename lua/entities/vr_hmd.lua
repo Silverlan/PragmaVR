@@ -6,4 +6,4 @@
     file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ]]
 
-ents.register("vr_hmd",{"vr_hmd"},Entity.TYPE_SHARED)
+ents.register("vr_hmd", { "vr_hmd" }, Entity.TYPE_SHARED)
