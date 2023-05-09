@@ -74,7 +74,7 @@ function ents.VrBody:AdjustUpperBody()
 					if(rotStatic ~= nil) then pose:SetRotation(rotStatic) end
 					-- Note: This will only work if the relative pose of the pov_camera only applies a position offset and no rotation offset
 
-					pose:TranslateLocal(tdC:GetDevicePose():GetOrigin())
+					--pose:TranslateLocal(tdC:GetDevicePose():GetOrigin())
 
 					-- We'll offset the effector by a few units upwards to account for the downwards head-movement (relative to the configured seated/standing reference position)
 					-- when the player is looking down with the HMD (which would cause the effector position to be placed inside the body).
@@ -82,8 +82,8 @@ function ents.VrBody:AdjustUpperBody()
 					local rootPose = animC:GetGlobalBonePose(chain[1])
 					local n = pose:GetOrigin() -rootPose:GetOrigin()
 					n:Normalize()
-					pose:TranslateGlobal(n *5.0)
-					vrIkC:SetEffectorPose("upper_body",pose)
+					--pose:TranslateGlobal(n *5.0)
+					--vrIkC:SetEffectorPose("upper_body",pose)
 				end
 			end
 		end

@@ -30,8 +30,12 @@ function ents.VRTrackedDevice:Setup(hmdC,trackedDeviceIndex,type,typeIndex)
 	self:SetTypeIndex(typeIndex)
 end
 function ents.VRTrackedDevice:GetHMD() return self.m_hmdC end
+function ents.VRTrackedDevice:GetRole() return openvr.get_controller_role(self:GetTrackedDeviceIndex()) end
 function ents.VRTrackedDevice:SetTrackedDeviceIndex(trackedDeviceIndex) self.m_trackedDeviceIndex = trackedDeviceIndex end
 function ents.VRTrackedDevice:GetTrackedDeviceIndex() return self.m_trackedDeviceIndex or -1 end
+function ents.VRTrackedDevice:GetSerialNumber() return openvr.get_tracked_device_serial_number(self:GetTrackedDeviceIndex()) end
+function ents.VRTrackedDevice:GetDeviceType() return openvr.get_tracked_device_type(self:GetTrackedDeviceIndex()) end
+function ents.VRTrackedDevice:TriggerHapticPulse() return openvr.trigger_haptic_pulse(self:GetTrackedDeviceIndex(),0,1) end
 function ents.VRTrackedDevice:SetType(type) self.m_type = type end
 function ents.VRTrackedDevice:GetType() return self.m_type end
 function ents.VRTrackedDevice:SetTypeIndex(idx) self.m_typeIndex = idx end

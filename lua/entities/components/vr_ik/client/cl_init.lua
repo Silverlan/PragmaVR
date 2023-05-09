@@ -18,7 +18,7 @@ function Component:Initialize()
 
 	self:AddEntityComponent(ents.COMPONENT_ANIMATED)
 	-- self:AddEntityComponent(ents.COMPONENT_IK)
-	self:BindEvent(ents.AnimatedComponent.EVENT_UPDATE_BONE_POSES,"UpdateIkTrees")
+	-- self:BindEvent(ents.AnimatedComponent.EVENT_UPDATE_BONE_POSES,"UpdateIkTrees")
 
 	self.m_ikControllers = {}
 	self.m_ikControllerNames = {}
@@ -214,6 +214,18 @@ function Component:UpdateIkTrees()
 					animC:SetGlobalBonePose(boneId,pose)
 					--print(ikPose:GetRotation() *effectorPose:GetRotation():GetInverse())
 				end
+
+				-- Fix lengths
+				local parentId = mdl:GetSkeleton():GetBone(boneId):GetParent():GetID()
+				local refLen = mdl:GetReferencePose():GetBonePose(parentId):GetOrigin():Distance(
+				mdl:GetReferencePose():GetBonePose(boneId):GetOrigin())
+				local localParentPose = animC:GetBonePose(parentId)
+				local localPose = animC:GetBonePose(boneId)
+				localPose:SetOrigin(localParentPose:GetOrigin() +(localPose:GetOrigin() -localParentPose:GetOrigin()):GetNormal() *refLen)
+				animC:SetBonePose(boneId,localPose)
+				--print(refLen)
+
+				-- Angular constraints
 				--parentPose = ikPose
 			end
 			--[[for i=1,#ikData.ikChain -1 do

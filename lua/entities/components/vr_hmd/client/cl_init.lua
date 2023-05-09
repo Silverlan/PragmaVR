@@ -204,12 +204,12 @@ function ents.VRHMD:UpdateHMDPose()
 	-- TODO: This does NOT belong here!
 	-- PFM camera doesn't update unless needed (i.e. during playback), but we
 	-- need it to update every frame, so we'll force it here.
-	if(ents.COMPONENT_PFM_ACTOR ~= nil) then
+	--[[if(ents.COMPONENT_PFM_ACTOR ~= nil) then
 		local pfmActorC = entCam:GetComponent(ents.COMPONENT_PFM_ACTOR)
 		if(pfmActorC ~= nil and entCam:HasComponent(ents.COMPONENT_POV_CAMERA) == false) then -- POV camera is handled separately TODO: This is a bit of a mess, clean it up!
 			pfmActorC:UpdatePose()
 		end
-	end
+	end]]
 	--
 
 	if(cvUpdateTrackedDevicePoses:GetBool() == true) then
