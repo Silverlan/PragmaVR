@@ -19,6 +19,7 @@ function gui.VRView:__init()
 	self:SetHorizontalRange(360.0)
 	self:SetCameraRotation(Quaternion())
 	self:SetRotationOffset(Quaternion())
+	self:SetReferenceCameraRotation(Quaternion())
 	self:SetZoomLevel(1.0)
 	self:SetRenderFlags(
 		bit.bor(
@@ -88,6 +89,9 @@ end
 function gui.VRView:SetRotationOffset(rot)
 	self.m_rotationOffset = rot:ToMatrix()
 end
+function gui.VRView:SetReferenceCameraRotation(rot)
+	self.m_refCamRot = rot
+end
 function gui.VRView:DrawVR(drawCmd, dsTex)
 	local cam
 	local v
@@ -101,7 +105,10 @@ function gui.VRView:DrawVR(drawCmd, dsTex)
 	if util.is_valid(cam) == false then
 		return
 	end
-	v = self.m_rotationOffset * v
+	-- Not sure why this yaw offset is required
+	local yawOffset = -(1.0 - self.m_horizontalRange:Get() / 360.0) * 180
+	v = v * self.m_refCamRot:ToMatrix() * EulerAngles(0, yawOffset, 0):ToQuaternion():ToMatrix() * self.m_rotationOffset
+
 	-- Strip translation
 	v:Set(3, 0, 0)
 	v:Set(3, 1, 0)
@@ -114,6 +121,7 @@ function gui.VRView:DrawVR(drawCmd, dsTex)
 		renderFlags = bit.bor(renderFlags, shader.VREquirectangular.RENDER_FLAG_ENABLE_MARGIN_BIT)
 	end
 	local r = self:GetVRShader()
+		:GetWrapper()
 		:Draw(drawCmd, dsTex, vp, self.m_horizontalRange:Get(), self.m_zoomLevel:Get(), renderFlags)
 end
 function gui.VRView:SetCursorInputMovementEnabled(enabled, elFocus)
