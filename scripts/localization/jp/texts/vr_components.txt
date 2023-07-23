@@ -1,0 +1,7 @@
+c_vr_body = "VRボディ"
+c_vr_controller = "VRコントローラー"
+c_vr_hmd = "VR HMD"
+c_vr_hmd_eye = "VRアイ"
+c_vr_ik = "VR IK"
+c_vr_tracked_device = "VRトラッキングデバイス"
+c_vr_video = "VRビデオ"
