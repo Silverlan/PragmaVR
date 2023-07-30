@@ -8,9 +8,11 @@
 
 util.register_class("ents.VrBody", BaseEntityComponent)
 
-function ents.VrBody:__init()
-	BaseEntityComponent.__init(self)
-end
+ents.VrBody:RegisterMember("Enabled", udm.TYPE_BOOLEAN, true, {
+	onChange = function(self)
+		self:UpdateActiveState()
+	end,
+}, bit.bor(ents.BaseEntityComponent.MEMBER_FLAG_DEFAULT, ents.BaseEntityComponent.MEMBER_FLAG_BIT_USE_IS_GETTER))
 
 function ents.VrBody:Initialize()
 	BaseEntityComponent.Initialize(self)
@@ -121,7 +123,16 @@ function ents.VrBody:UpdateRelativeIkUpperBodyPose()
 	vrIk:SetIkControllerPoseOffset("upper_body",relPose:GetInverse())]]
 end
 
-function ents.VrBody:HideHeadBone()
+function ents.VrBody:UpdateActiveState()
+	if self:IsEnabled() then
+	else
+	end
+end
+
+function ents.VrBody:HideHeadBone(hide)
+	if hide == nil then
+		hide = true
+	end
 	if self.m_headBone == nil then
 		return
 	end
@@ -129,7 +140,7 @@ function ents.VrBody:HideHeadBone()
 	if animC == nil then
 		return
 	end
-	animC:SetBoneScale(self.m_headBone, Vector(0, 0, 0))
+	animC:SetBoneScale(self.m_headBone, hide and Vector(0, 0, 0) or Vector(1, 1, 1))
 	--self:AdjustUpperBody()
 end
 
