@@ -156,17 +156,17 @@ function gui.VRView:SetCursorInputMovementEnabled(enabled, elFocus)
 			return util.EVENT_REPLY_HANDLED
 		end
 
-		local el = gui.get_element_under_cursor()
-		if util.is_valid(el) and (el == self or el:IsDescendantOf(self)) then
-			if mouseButton == input.MOUSE_BUTTON_LEFT and state == input.STATE_PRESS then
-				self.m_oldCursorPos = input.get_cursor_pos()
-				input.center_cursor()
-				elFocus:TrapFocus(false)
-				elFocus:KillFocus()
-				self.m_inCameraControlMode = true
-			end
-			return util.EVENT_REPLY_HANDLED
+		--local el = gui.get_element_under_cursor()
+		--if util.is_valid(el) and (el == self or el:IsDescendantOf(self)) then
+		if mouseButton == input.MOUSE_BUTTON_LEFT and state == input.STATE_PRESS then
+			self.m_oldCursorPos = input.get_cursor_pos()
+			input.center_cursor()
+			elFocus:TrapFocus(false)
+			elFocus:KillFocus()
+			self.m_inCameraControlMode = true
 		end
-		return util.EVENT_REPLY_UNHANDLED
+		return util.EVENT_REPLY_HANDLED
+		--end
+		--return util.EVENT_REPLY_UNHANDLED
 	end)
 end
