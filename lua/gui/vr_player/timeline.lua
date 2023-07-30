@@ -59,7 +59,7 @@ end
 function gui.VRTimeline:IsCursorBeingDragged()
 	return self.m_cursor:IsActive()
 end
-function gui.VRTimeline:OnMouseEvent(button, state, mods)
+function gui.VRTimeline:MouseCallback(button, state, mods)
 	local cursorPos = self.m_progressBar:GetCursorPos()
 	self.m_cursor:InjectMouseInput(cursorPos, button, state, mods)
 	self.m_cursor:CallCallbacks("OnCursorMoved", cursorPos.x, cursorPos.y)
