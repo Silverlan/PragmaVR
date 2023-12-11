@@ -1,11 +1,3 @@
---[[
-    Copyright (C) 2020  Florian Weischer
-
-    This Source Code Form is subject to the terms of the Mozilla Public
-    License, v. 2.0. If a copy of the MPL was not distributed with this
-    file, You can obtain one at http://mozilla.org/MPL/2.0/.
-]]
-
 include("/vr/vr_recording.lua")
 
 console.register_variable(
@@ -15,6 +7,7 @@ console.register_variable(
 	0,
 	"If enabled, a line will be drawn in front of the camera pointing to the vr controller(s)."
 )
+
 console.register_variable(
 	"vr_hide_primary_game_scene",
 	udm.TYPE_BOOLEAN,
@@ -22,6 +15,7 @@ console.register_variable(
 	0,
 	"If enabled, the default game render will be disabled to save rendering resources."
 )
+
 console.register_variable(
 	"vr_apply_hmd_pose_to_camera",
 	udm.TYPE_BOOLEAN,
@@ -29,6 +23,7 @@ console.register_variable(
 	0,
 	"If enabled, the HMD pose will be applied to the game camera."
 )
+
 console.register_variable(
 	"vr_freeze_tracked_device_poses",
 	udm.TYPE_BOOLEAN,
@@ -36,6 +31,7 @@ console.register_variable(
 	0,
 	"If enabled, all tracked vr devices will freeze in their current places."
 )
+
 console.register_variable(
 	"vr_update_tracked_device_poses",
 	udm.TYPE_BOOLEAN,
@@ -67,6 +63,7 @@ console.register_command("vr_debug_launch", function()
 	-- console.run("vr_lock_hmd_pos_to_camera","1")
 	-- console.run("vr_lock_hmd_ang_to_camera","1")
 end)
+
 console.register_command("vr_tracked_devices", function()
 	for ent in ents.iterator({ ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE) }) do
 		local trC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
@@ -92,6 +89,7 @@ console.register_command("vr_tracked_devices", function()
 		end
 	end
 end)
+
 console.register_command("vr_hmd_pose", function()
 	local ent = ents.iterator({ ents.IteratorFilterComponent(ents.COMPONENT_VR_HMD) })()
 	if ent == nil then
@@ -109,6 +107,7 @@ console.register_command("vr_hmd_pose", function()
 	print("Head Space: ", pose)
 	print("Velocity: ", vel)
 end)
+
 console.register_variable(
 	"vr_lock_hmd_pos_to_camera",
 	udm.TYPE_BOOLEAN,
@@ -116,6 +115,7 @@ console.register_variable(
 	0,
 	"If enabled, relative HMD motion will be ignored."
 )
+
 console.register_variable(
 	"vr_lock_hmd_ang_to_camera",
 	udm.TYPE_BOOLEAN,
@@ -123,6 +123,7 @@ console.register_variable(
 	0,
 	"If enabled, relative HMD rotation will be ignored."
 )
+
 console.register_variable(
 	"vr_render_both_eyes_if_hmd_inactive",
 	udm.TYPE_BOOLEAN,
@@ -130,6 +131,7 @@ console.register_variable(
 	0,
 	"If enabled, both eyes will be rendered even if the HMD is not put on."
 )
+
 console.register_variable(
 	"vr_force_always_active",
 	udm.TYPE_BOOLEAN,
@@ -137,7 +139,9 @@ console.register_variable(
 	0,
 	"If enabled, HMD will never be put into inactive state."
 )
+
 console.register_variable("vr_debug_mode", udm.TYPE_BOOLEAN, false, 0, "Enables the vr developer debug mode.")
+
 console.register_variable(
 	"vr_resolution_override",
 	udm.TYPE_STRING,
@@ -145,6 +149,7 @@ console.register_variable(
 	0,
 	"Forces VR to run with this resolution instead of the one recommended by the API."
 )
+
 console.register_variable(
 	"vr_mirror_eye_view",
 	udm.TYPE_INT8,
@@ -168,6 +173,7 @@ console.register_command("vr_reset_body", function()
 	local vrBodyC = ent:GetComponent(ents.COMPONENT_VR_BODY)
 	vrBodyC:ResetIk()
 end)
+
 console.register_command("vr_recording_mode", function()
 	console.run("vr_render_both_eyes_if_hmd_inactive", "0")
 	console.run("vr_debug_mode", "0")
