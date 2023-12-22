@@ -124,13 +124,21 @@ function ents.VRController:UpdateLaser()
 	end
 	if self:IsLaserEnabled() == false then
 		util.remove(self.m_laser)
+		self:BroadcastEvent(self.EVENT_ON_LASER_DESTROYED)
 		return
 	end
 	if util.is_valid(self.m_laser) then
 		return
 	end
-	-- TODO: Use a cylinder mesh for the laser?
-	self.m_laser = debug.draw_line(Vector(0, 0, 0), Vector(0, 0, 1), Color.Red)
+	local entLaser = ents.create("vr_controller_laser")
+	entLaser:Spawn()
+	self.m_laser = entLaser
+
+	self:BroadcastEvent(self.EVENT_ON_LASER_INITIALIZED, { entLaser })
+end
+
+function ents.VRController:GetLaser()
+	return self.m_laser
 end
 
 function ents.VRController:OnEntitySpawn()
@@ -156,11 +164,16 @@ function ents.VRController:OnTick(dt)
 			dir = -dir
 			local posDst = pos + dir * 2048.0
 
+			--[[local drawInfo = debug.DrawInfo()
+			drawInfo:SetDuration(0.01)
+			drawInfo:SetColor(Color.Red)
+			debug.draw_line(pos, pos + dir * -1000, drawInfo)]]
+
 			local srcPos = self:GetEntity():GetPos()
 			self.m_laser:SetPos(srcPos)
-			self.m_laser:SetRotation(self:GetEntity():GetRotation() * EulerAngles(0, 180, 0):ToQuaternion())
-			local l = 500 --ray.position:Distance(srcPos)
-			self.m_laser:SetScale(Vector(0, 0, l))
+			self.m_laser:SetRotation(self:GetEntity():GetRotation() * EulerAngles(90 + 45, 0, 0):ToQuaternion())
+			--local l = 500 --ray.position:Distance(srcPos)
+			--self.m_laser:SetScale(Vector(0, 0, l))
 
 			self:BroadcastEvent(self.EVENT_ON_LASER_HIT, { pos, -dir })
 			--[[local rayData = charComponent:GetAimRayData(1200.0)
@@ -186,5 +199,9 @@ end
 
 ents.VRController.EVENT_ON_TRIGGER_STATE_CHANGED =
 	ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "trigger_state_changed")
+ents.VRController.EVENT_ON_LASER_INITIALIZED =
+	ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "on_laser_initialized")
+ents.VRController.EVENT_ON_LASER_DESTROYED =
+	ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "on_laser_destroyed")
 ents.VRController.EVENT_ON_LASER_HIT = ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "laser_hit")
 ents.VRController.EVENT_ON_BUTTON_INPUT = ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "button_input")
