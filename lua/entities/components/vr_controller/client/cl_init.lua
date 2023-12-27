@@ -105,7 +105,7 @@ function ents.VRController:IsPrimaryController()
 	if hmdC == nil then
 		return
 	end
-	return hmdC:GetPrimaryController() == self
+	return util.is_same_object(hmdC:GetPrimaryController(), self)
 end
 function ents.VRController:IsSecondaryController()
 	return not self:IsPrimaryController()
