@@ -48,6 +48,8 @@ console.register_variable(
 	"If disabled, tracked device poses will not be updated."
 )
 
+locale.load("vr_components.txt")
+
 local g_debug_hmd
 console.register_command("vr_debug_launch", function()
 	if util.is_valid(g_debug_hmd) then
