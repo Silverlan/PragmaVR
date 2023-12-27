@@ -134,6 +134,12 @@ function ents.VRController:UpdateLaser()
 	entLaser:Spawn()
 	self.m_laser = entLaser
 
+	local renderC = entLaser:GetComponent(ents.COMPONENT_RENDER)
+	if renderC ~= nil then
+		renderC:SetExemptFromOcclusionCulling(true)
+		renderC:SetCastShadows(false)
+	end
+
 	self:BroadcastEvent(self.EVENT_ON_LASER_INITIALIZED, { entLaser })
 end
 
@@ -151,7 +157,10 @@ end
 
 function ents.VRController:GetLaserRaycastData()
 	local ent = self:GetEntity()
-	return ent:GetPos(), -ent:GetForward()
+	local pos = ent:GetPos()
+	local rot = ent:GetRotation()
+	rot = rot * EulerAngles(90 + 45, 0, 0):ToQuaternion()
+	return ent:GetPos(), rot:GetForward()
 end
 
 function ents.VRController:OnTick(dt)
@@ -173,7 +182,7 @@ function ents.VRController:OnTick(dt)
 			self.m_laser:SetPos(srcPos)
 			self.m_laser:SetRotation(self:GetEntity():GetRotation() * EulerAngles(90 + 45, 0, 0):ToQuaternion())
 			--local l = 500 --ray.position:Distance(srcPos)
-			--self.m_laser:SetScale(Vector(0, 0, l))
+			--self.m_laser:SetScale(Vector(1, 1, l))
 
 			self:BroadcastEvent(self.EVENT_ON_LASER_HIT, { pos, -dir })
 			--[[local rayData = charComponent:GetAimRayData(1200.0)
