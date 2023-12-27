@@ -25,12 +25,9 @@ function Component:GetModel()
 	local mdl = game.create_model()
 	local meshGroup = mdl:GetMeshGroup(0)
 
-	local scale = 1.0
-	scale = Vector(scale, scale, scale)
 	local mesh = game.Model.Mesh.Create()
-	local meshBase = game.Model.Mesh.Sub.create_cylinder(game.Model.CylinderCreateInfo(0.2, 1000.0))
+	local meshBase = game.Model.Mesh.Sub.create_cylinder(game.Model.CylinderCreateInfo(0.2, 1.0))
 	meshBase:SetSkinTextureIndex(0)
-	meshBase:Scale(scale)
 	mesh:AddSubMesh(meshBase)
 
 	meshGroup:AddMesh(mesh)
