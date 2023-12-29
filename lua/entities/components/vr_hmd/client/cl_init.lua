@@ -14,7 +14,6 @@ function ents.VRHMD:Initialize()
 	local toggleC = self:AddEntityComponent(ents.COMPONENT_TOGGLE)
 	self:AddEntityComponent(ents.COMPONENT_OWNABLE)
 	local tdC = self:AddEntityComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-	tdC:SetUserInteractionState(ents.VRTrackedDevice.USER_INTERACTION_INACTIVE)
 	self:BindEvent(ents.ToggleComponent.EVENT_ON_TURN_ON, "OnTurnedOn")
 	self:BindEvent(ents.ToggleComponent.EVENT_ON_TURN_OFF, "OnTurnedOff")
 	self.m_eyes = {}
@@ -349,7 +348,7 @@ end
 function ents.VRHMD:OnTurnedOn()
 	self:Setup()
 	self:InitializeRenderCallbacks()
-	if openvr == nil then
+	if openvr == nil or openvr.is_instance_valid() == false then
 		return
 	end
 	openvr.set_hmd_view_enabled(true)
@@ -358,7 +357,7 @@ function ents.VRHMD:OnTurnedOff()
 	util.remove(self.m_cbDrawScenes)
 	util.remove(self.m_cbSubmitScenes)
 	game.set_default_game_render_enabled(true)
-	if openvr == nil then
+	if openvr == nil or openvr.is_instance_valid() == false then
 		return
 	end
 	openvr.set_hmd_view_enabled(false)

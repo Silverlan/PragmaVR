@@ -11,15 +11,12 @@ util.register_class("ents.VRTrackedDevice", BaseEntityComponent)
 ents.VRTrackedDevice.USER_INTERACTION_INACTIVE = 0
 ents.VRTrackedDevice.USER_INTERACTION_ACTIVE = 1
 
-function ents.VRTrackedDevice:__init()
-	BaseEntityComponent.__init(self)
-end
-
 local cvForceAlwaysActive = console.get_convar("vr_force_always_active")
 function ents.VRTrackedDevice:Initialize()
 	self:GetEntity():TurnOff()
 
 	self.m_forceActive = false
+	self:SetUserInteractionState(ents.VRTrackedDevice.USER_INTERACTION_INACTIVE)
 	self:SetForceActive(cvForceAlwaysActive:GetBool())
 end
 
@@ -28,6 +25,7 @@ function ents.VRTrackedDevice:Setup(hmdC, trackedDeviceIndex, type, typeIndex)
 	self:SetTrackedDeviceIndex(trackedDeviceIndex)
 	self:SetType(type)
 	self:SetTypeIndex(typeIndex)
+	self:UpdateUserInteractionState()
 end
 function ents.VRTrackedDevice:GetHMD()
 	return self.m_hmdC
@@ -85,9 +83,21 @@ function ents.VRTrackedDevice:GetUserInteractionState()
 	return self.m_userInteractionState or ents.VRTrackedDevice.USER_INTERACTION_INACTIVE
 end
 function ents.VRTrackedDevice:SetUserInteractionState(state)
+	if state == self.m_userInteractionState then
+		return
+	end
 	self.m_userInteractionState = state
 	state = self.m_forceActive and ents.VRTrackedDevice.USER_INTERACTION_ACTIVE or state
 	self:BroadcastEvent(ents.VRTrackedDevice.EVENT_ON_USER_INTERACTION_STATE_CHANGED, { state })
+end
+function ents.VRTrackedDevice:UpdateUserInteractionState()
+	local idx = self:GetTrackedDeviceIndex()
+	local level = openvr.get_tracked_device_activity_level(idx)
+	if level == openvr.DEVICE_ACTIVITY_LEVEL_USER_INTERACTION then
+		self:SetUserInteractionState(ents.VRTrackedDevice.USER_INTERACTION_ACTIVE)
+	elseif level == openvr.DEVICE_ACTIVITY_LEVEL_IDLE then
+		self:SetUserInteractionState(ents.VRTrackedDevice.USER_INTERACTION_INACTIVE)
+	end
 end
 
 local frozenPoses

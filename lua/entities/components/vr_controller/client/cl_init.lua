@@ -62,8 +62,8 @@ function ents.VRController:UpdateOrientation()
 
 	-- debug.draw_line(Vector(),self:GetEntity():GetPos(),Color.Red,1)
 
-	local success, state = openvr.get_controller_state(trackedDeviceC:GetTrackedDeviceIndex())
-	if success == true then
+	local state = openvr.get_controller_state(trackedDeviceC:GetTrackedDeviceIndex())
+	if state ~= nil then
 		-- TODO: Implement this properly for all buttons / axes as generic key inputs
 		local triggerAxis = state.axis1
 		if triggerAxis.x >= 0.1 then
