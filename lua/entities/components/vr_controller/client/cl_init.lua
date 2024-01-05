@@ -184,7 +184,7 @@ function ents.VRController:OnTick(dt)
 			--local l = 500 --ray.position:Distance(srcPos)
 			--self.m_laser:SetScale(Vector(1, 1, l))
 
-			self:BroadcastEvent(self.EVENT_ON_LASER_HIT, { pos, -dir })
+			self:BroadcastEvent(self.EVENT_UPDATE_LASER, { pos, -dir })
 			--[[local rayData = charComponent:GetAimRayData(1200.0)
 			rayData:SetSource(pos)
 			rayData:SetTarget(posDst)
@@ -212,5 +212,5 @@ ents.VRController.EVENT_ON_LASER_INITIALIZED =
 	ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "on_laser_initialized")
 ents.VRController.EVENT_ON_LASER_DESTROYED =
 	ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "on_laser_destroyed")
-ents.VRController.EVENT_ON_LASER_HIT = ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "laser_hit")
+ents.VRController.EVENT_UPDATE_LASER = ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "update_laser")
 ents.VRController.EVENT_ON_BUTTON_INPUT = ents.register_component_event(ents.COMPONENT_VR_CONTROLLER, "button_input")
