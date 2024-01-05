@@ -163,6 +163,12 @@ function ents.VRController:GetLaserRaycastData()
 	return ent:GetPos(), rot:GetForward()
 end
 
+function ents.VRController:Raycast()
+	local pos, dir = self:GetLaserRaycastData()
+	local maxDist = 32768
+	return ents.ClickComponent.raycast(pos, dir, nil, maxDist)
+end
+
 function ents.VRController:OnTick(dt)
 	self:UpdateOrientation()
 	if self.m_cursorEnabled and self.m_laserEnabled and util.is_valid(self.m_laser) then
