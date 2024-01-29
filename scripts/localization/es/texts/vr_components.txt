@@ -1,0 +1,7 @@
+c_vr_body = "Cuerpo de RV"
+c_vr_controller = "Controlador de RV"
+c_vr_hmd = "VR HMD"
+c_vr_hmd_eye = "VR Ojo"
+c_vr_ik = "VR IK"
+c_vr_tracked_device = "Dispositivo Rastreado de RV"
+c_vr_video = "Video de RV"

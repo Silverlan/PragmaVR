@@ -1,0 +1,7 @@
+c_vr_body = "VR 身体"
+c_vr_controller = "VR 控制器"
+c_vr_hmd = "VR HMD"
+c_vr_hmd_eye = "VR 眼睛"
+c_vr_ik = "虚拟现实 IK"
+c_vr_tracked_device = "VR 跟踪设备"
+c_vr_video = "VR视频"

@@ -1,0 +1,7 @@
+c_vr_body = "Ciało VR"
+c_vr_controller = "Kontroler VR"
+c_vr_hmd = "Gogle VR"
+c_vr_hmd_eye = "Wirtualna rzeczywistość"
+c_vr_ik = "VR IK"
+c_vr_tracked_device = "Urządzenie śledzone VR"
+c_vr_video = "Wideo VR"
