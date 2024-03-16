@@ -150,7 +150,7 @@ function Component:AdjustUpperBody()
 		local boneChain = vrIkC:GetIkControllerBoneChain("upper_body")
 		if boneChain ~= nil then
 			local effectorBoneId = boneChain[#boneChain]
-			local pose = self.m_povCamera:CalcBaseCameraPose() -- animC:GetGlobalBonePose(effectorBoneId)
+			local pose = self.m_povCamera:CalcBaseCameraPose() -- animC:GetBonePose(effectorBoneId,math.COORDINATE_SPACE_WORLD)
 			if pose ~= nil then
 				-- TODO: This is a bit of a mess, clean this up!
 				local td = vrIkC:GetTrackedDevice("upper_body")
@@ -167,7 +167,7 @@ function Component:AdjustUpperBody()
 					-- We'll offset the effector by a few units upwards to account for the downwards head-movement (relative to the configured seated/standing reference position)
 					-- when the player is looking down with the HMD (which would cause the effector position to be placed inside the body).
 					local chain = vrIkC:GetIkControllerBoneChain("upper_body")
-					local rootPose = animC:GetGlobalBonePose(chain[1])
+					local rootPose = animC:GetBonePose(chain[1], math.COORDINATE_SPACE_WORLD)
 					local n = pose:GetOrigin() - rootPose:GetOrigin()
 					n:Normalize()
 					--pose:TranslateGlobal(n *5.0)

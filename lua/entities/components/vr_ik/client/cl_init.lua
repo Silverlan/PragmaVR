@@ -132,7 +132,7 @@ function Component:DebugDraw(name)
 	end
 
 	local solver = ikData.ikSolver
-	local originPose = animC:GetGlobalBonePose(ikData.ikChain[1])
+	local originPose = animC:GetBonePose(ikData.ikChain[1], math.COORDINATE_SPACE_WORLD)
 	local parentPose = originPose
 	originPose = originPose * solver:GetGlobalTransform(0):GetInverse()
 	for i = 2, solver:Size() do
@@ -234,7 +234,7 @@ function Component:UpdateIkTrees()
 			local mdl = self:GetEntity():GetModel()
 			local bone = mdl:GetSkeleton():GetBone(ikData.ikChain[1])
 			local parent = bone:GetParent()
-			local rootAnimPose = (parent ~= nil) and animC:GetGlobalBonePose(parent:GetID())
+			local rootAnimPose = (parent ~= nil) and animC:GetBonePose(parent:GetID(), math.COORDINATE_SPACE_WORLD)
 				or self:GetEntity():GetPose()
 			local test = animC:GetBonePose(ikData.ikChain[1])
 			rootAnimPose:TranslateLocal(-test:GetOrigin())
@@ -246,7 +246,7 @@ function Component:UpdateIkTrees()
 
 			local rootIkPose = ikData.ikSolver:GetGlobalTransform(0)
 			local rootPose = rootAnimPose * rootIkPose --math.ScaledTransform(rootAnimPose:GetOrigin(),rootIkPose:GetRotation(),rootAnimPose:GetScale())
-			animC:SetGlobalBonePose(ikData.ikChain[1], rootPose)
+			animC:SetBonePose(ikData.ikChain[1], rootPosemath.COORDINATE_SPACE_WORLD)
 
 			local parentPose = rootPose
 			for i = 2, #ikData.ikChain do
@@ -258,11 +258,11 @@ function Component:UpdateIkTrees()
 				parentPose = ikPose
 
 				if i == #ikData.ikChain then
-					local pose = animC:GetGlobalBonePose(boneId)
+					local pose = animC:GetBonePose(boneId, math.COORDINATE_SPACE_WORLD)
 					--pose:SetRotation(effectorPose:GetRotation() *EulerAngles(90,-90,0):ToQuaternion())--effectorPose:GetRotation() *ikPose:GetRotation())
 					--pose:SetRotation(effectorPose:GetRotation() *EulerAngles(-90,90,0):ToQuaternion())--effectorPose:GetRotation() *ikPose:GetRotation())
 					pose:SetRotation(effectorPose:GetRotation() * ikData.effectorOffsetPose:GetRotation())
-					animC:SetGlobalBonePose(boneId, pose)
+					animC:SetBonePose(boneId, posemath.COORDINATE_SPACE_WORLD)
 					--print(ikPose:GetRotation() *effectorPose:GetRotation():GetInverse())
 				end
 
@@ -325,8 +325,9 @@ function Component:ResetIkTree(name)
 	local solver = ikData.ikSolver
 	local bone = skeleton:GetBone(boneIds[1])
 	local parent = bone:GetParent()
-	local rootPose = (parent ~= nil) and animC:GetGlobalBonePose(parent:GetID()) or self:GetEntity():GetPose()
-	local test = animC:GetGlobalBonePose(boneIds[1])
+	local rootPose = (parent ~= nil) and animC:GetBonePose(parent:GetID(), math.COORDINATE_SPACE_WORLD)
+		or self:GetEntity():GetPose()
+	local test = animC:GetBonePose(boneIds[1], math.COORDINATE_SPACE_WORLD)
 	test = rootPose:GetInverse() * test
 	rootPose:TranslateLocal(-test:GetOrigin())
 
@@ -334,7 +335,7 @@ function Component:ResetIkTree(name)
 	for i = 1, #boneIds do
 		local boneId = boneIds[i]
 		local bone = skeleton:GetBone(boneId)
-		local pose = animC:GetGlobalBonePose(boneId)
+		local pose = animC:GetBonePose(boneId, math.COORDINATE_SPACE_WORLD)
 		local relPose = parentPose:GetInverse() * pose
 		parentPose = pose
 		solver:SetLocalTransform(i - 1, relPose)
