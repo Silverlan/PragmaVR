@@ -1,0 +1,13 @@
+"pbr"
+{
+	"properties"
+	{
+		$vec3 emission_factor [0,0,0]
+		$float metalness_factor 0
+		$float roughness_factor 0.9
+	}
+	"textures"
+	{
+		$string albedo_map "models/vr/steam_controller_02_freeman/steam_controller_02_freeman_steamcontroller_freeman_mat_albedo"
+	}
+}

@@ -1,0 +1,14 @@
+"pbr"
+{
+	"properties"
+	{
+		$vec3 color_factor [0.5,0.5,0.5]
+		$vec3 emission_factor [0,0,0]
+		$float metalness_factor 0
+		$float roughness_factor 0
+	}
+	"textures"
+	{
+		$string albedo_map "white"
+	}
+}

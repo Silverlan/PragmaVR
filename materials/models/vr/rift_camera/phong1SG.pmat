@@ -1,0 +1,13 @@
+"pbr"
+{
+	"properties"
+	{
+		$vec3 emission_factor [0,0,0]
+		$float metalness_factor 0
+		$float roughness_factor 0.8658
+	}
+	"textures"
+	{
+		$string albedo_map "models/vr/rift_camera/phong1sg_albedo"
+	}
+}

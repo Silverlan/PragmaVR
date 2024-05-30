@@ -1,0 +1,13 @@
+"pbr"
+{
+	"properties"
+	{
+		$vec3 emission_factor [0,0,0]
+		$float metalness_factor 0
+		$float roughness_factor 1
+	}
+	"textures"
+	{
+		$string albedo_map "models/vr/lh_basestation_vive/lambert5sg_albedo"
+	}
+}
