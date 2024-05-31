@@ -18,7 +18,6 @@ end
 
 function ents.VRController:Initialize()
 	local ent = self:GetEntity()
-	self:AddEntityComponent(ents.COMPONENT_MODEL, "InitializeModel")
 	self:AddEntityComponent(ents.COMPONENT_PHYSICS, "InitializePhysics")
 	self:AddEntityComponent(ents.COMPONENT_TOUCH, "InitializeTouch")
 	self:AddEntityComponent(ents.COMPONENT_OWNABLE)
@@ -32,13 +31,6 @@ function ents.VRController:Initialize()
 	self:BindEvent(ents.TouchComponent.EVENT_ON_START_TOUCH, "OnStartTouch")
 	self:BindEvent(ents.TouchComponent.EVENT_CAN_TRIGGER, "CanTrigger")
 	self:BindEvent(ents.OwnableComponent.EVENT_ON_OWNER_CHANGED, "OnOwnerChanged")
-end
-
-function ents.VRController:InitializeModel(component)
-	if component:GetModel() ~= nil then
-		return
-	end
-	component:SetModel("vr/vr_controller_vive_1_5.wmd")
 end
 
 function ents.VRController:OnOwnerChanged(oldOwner, newOwner)

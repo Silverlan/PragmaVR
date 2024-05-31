@@ -20,12 +20,71 @@ function ents.VRTrackedDevice:Initialize()
 	self:SetForceActive(cvForceAlwaysActive:GetBool())
 end
 
+local rotY90 = EulerAngles(0, 180, 0):ToQuaternion()
+local rotP90 = EulerAngles(90, 0, 0):ToQuaternion()
+function ents.VRTrackedDevice:InitializeRenderModel()
+	if util.is_valid(self.m_renderModel) == false then
+		local ent = ents.create("prop_dynamic")
+		self.m_renderModel = ent
+		ent:Spawn()
+		if util.is_valid(self.m_renderModel) == false then
+			return
+		end
+	end
+	self.m_renderModel:SetModel(self:GetRenderModelName())
+	-- TODO: The models themselves should be rotated to point forward along the +z axis
+	-- so that this rotation offset is not needed
+	local renderModelOffsetPose = math.Transform(Vector(), rotY90)
+	if self:IsController() then
+		-- Controller models need an additional rotation offset, reason unclear
+		renderModelOffsetPose:RotateLocal(rotP90)
+	end
+	self.m_renderModel:SetPose(self:GetEntity():GetPose() * renderModelOffsetPose)
+	self.m_renderModel:SetParent(self:GetEntity())
+end
+
+function ents.VRTrackedDevice:OnEntitySpawn()
+	if util.is_valid(self.m_hmdC) then
+		self:InitializeRenderModel()
+	end
+end
+
+function ents.VRTrackedDevice:OnRemove()
+	util.remove(self.m_renderModel)
+end
+
+function ents.VRTrackedDevice:GetRenderModelEntity()
+	return self.m_renderModel
+end
+
+function ents.VRTrackedDevice:GetRenderModelName()
+	local mdlName = openvr.get_tracked_device_render_model_name(self:GetTrackedDeviceIndex())
+	if mdlName ~= nil then
+		mdlName = "vr/" .. mdlName
+	end
+	if mdlName == nil or asset.exists("vr/arrow", asset.TYPE_MODEL) == false then
+		if self:IsHMD() then
+			mdlName = "vr/generic_hmd"
+		elseif self:IsController() then
+			mdlName = "vr/generic_controller"
+		else
+			mdlName = "vr/generic_tracker"
+		end
+	end
+	return mdlName
+end
+
 function ents.VRTrackedDevice:Setup(hmdC, trackedDeviceIndex, type, typeIndex)
 	self.m_hmdC = hmdC
 	self:SetTrackedDeviceIndex(trackedDeviceIndex)
 	self:SetType(type)
 	self:SetTypeIndex(typeIndex)
 	self:UpdateUserInteractionState()
+
+	self:GetEntity():SetParent(hmdC:GetEntity())
+	if self:GetEntity():IsSpawned() then
+		self:InitializeRenderModel()
+	end
 end
 function ents.VRTrackedDevice:GetHMD()
 	return self.m_hmdC
