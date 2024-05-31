@@ -108,9 +108,7 @@ function ents.VRController:SetControllerTransform(pos, rot, vel)
 
 	local ang = rot:ToEulerAngles()
 
-	pos.z = pos.z
-	pos.y = pos.y
-	rot = EulerAngles(0, 180, 0):ToQuaternion() * EulerAngles(-ang.p, ang.y, -ang.r):ToQuaternion() --ctrlPose:GetRotation()
+	--rot = EulerAngles(0, 180, 0):ToQuaternion() * EulerAngles(-ang.p, ang.y, -ang.r):ToQuaternion() --ctrlPose:GetRotation()
 	local ctrlPose = math.Transform(pos, rot)
 	ctrlPose = hmdPose * ctrlPose
 	pos = ctrlPose:GetOrigin()

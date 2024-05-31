@@ -200,6 +200,10 @@ function ents.VRTrackedDevice:GetDevicePose()
 			pose:SetRotation(Quaternion())
 		end
 	end
+	if self:IsController() then
+		-- We need to rotate 90 degree around the x axis, reason unclear
+		pose:RotateLocal(rotP90)
+	end
 	return pose, vel
 end
 ents.COMPONENT_VR_TRACKED_DEVICE = ents.register_component("vr_tracked_device", ents.VRTrackedDevice)
