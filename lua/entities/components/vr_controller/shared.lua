@@ -101,8 +101,8 @@ function ents.VRController:SetControllerTransform(pos, rot, vel)
 	if hmdC == nil then
 		return
 	end
-	local hmdPose = hmdC:GetReferencePose()
-	hmdPose = hmdPose:Copy()
+	local hmdPose = hmdC:GetEntity():GetPose() --GetReferencePose()
+	--hmdPose = hmdPose:Copy()
 
 	local ent = ents.get_local_player():GetEntity():GetComponent(ents.COMPONENT_CHARACTER)
 

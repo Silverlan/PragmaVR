@@ -20,6 +20,7 @@ function ents.VRHMD:Initialize()
 	self.m_trackedDevices = {}
 	self.m_deviceClassToDevice = {}
 	self.m_trackedDeviceIndexToTypeIndex = {}
+	self.m_roleToController = {}
 	self.m_refPose = math.Transform()
 	toggleC:TurnOn()
 
@@ -227,6 +228,8 @@ function ents.VRHMD:Setup()
 		end
 	end
 
+	openvr.set_tracking_space(openvr.TRACKING_UNIVERSE_ORIGIN_SEATED)
+
 	self:InitializeRenderCallbacks()
 
 	self:BroadcastEvent(ents.VRHMD.EVENT_ON_HMD_INITIALIZED)
@@ -253,8 +256,11 @@ function ents.VRHMD:InitializeRenderCallbacks()
 		end)
 	end
 end
-function ents.VRHMD:GetCamera()
-	return game.get_scene():GetActiveCamera()
+function ents.VRHMD:GetReferenceEntity()
+	local cam = game.get_scene():GetActiveCamera()
+	if cam ~= nil then
+		return cam:GetEntity()
+	end
 end
 function ents.VRHMD:SetHMDPoseOffset(offsetPose)
 	self.m_offsetPose = offsetPose
@@ -268,51 +274,61 @@ end
 local cvApplyHMDPose = console.get_convar("vr_apply_hmd_pose_to_camera")
 local cvUpdateTrackedDevicePoses = console.get_convar("vr_update_tracked_device_poses")
 function ents.VRHMD:UpdateHMDPose()
-	local tdC = self:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-	local gameCam = self:GetCamera()
-	if gameCam == nil or tdC == nil then
+	if cvUpdateTrackedDevicePoses:GetBool() == false then
 		return
 	end
-	local entCam = gameCam:GetEntity()
 
-	-- TODO: This does NOT belong here!
-	-- PFM camera doesn't update unless needed (i.e. during playback), but we
-	-- need it to update every frame, so we'll force it here.
-	--[[if(ents.COMPONENT_PFM_ACTOR ~= nil) then
-		local pfmActorC = entCam:GetComponent(ents.COMPONENT_PFM_ACTOR)
-		if(pfmActorC ~= nil and entCam:HasComponent(ents.COMPONENT_POV_CAMERA) == false) then -- POV camera is handled separately TODO: This is a bit of a mess, clean it up!
-			pfmActorC:UpdatePose()
+	local ent = self:GetEntity()
+	local hmdPoseData = {}
+	if self:InvokeEventCallbacks(ents.VRHMD.EVENT_UPDATE_HMD_POSE, { hmdPoseData }) == util.EVENT_REPLY_UNHANDLED then
+		-- Default behavior: Put the HMD relative to the currently active camera
+		local tdC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+		local entRef = self:GetReferenceEntity()
+		if tdC ~= nil and entRef ~= nil then
+			local pose = entRef:GetPose()
+			if cvApplyHMDPose:GetBool() then
+				local hmdPose = tdC:GetDevicePose()
+				if hmdPose ~= nil then
+					pose = pose * hmdPose
+				end
+			end
+			ent:SetPose(pose)
 		end
-	end]]
-	--
+	end
 
-	if cvUpdateTrackedDevicePoses:GetBool() == true then
-		self.m_refPose = entCam:GetPose()
-		local pose = self.m_refPose
-		if cvApplyHMDPose:GetBool() then
-			local hmdPose = tdC:GetDevicePose()
-			if hmdPose == nil then
-				return
-			end
-			hmdPose:SetRotation(hmdPose:GetRotation())
-			if self.m_offsetPose ~= nil then
-				hmdPose = self.m_offsetPose * hmdPose
-			end
+	local pose = hmdPoseData.cameraPose
+	if pose ~= nil then
+		-- If a custom camera pose was supplied, add the HMD offset pose
+		local tdC = ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+		local hmdPose = (tdC ~= nil) and tdC:GetDevicePose() or nil
+		if hmdPose ~= nil then
 			pose = pose * hmdPose
 		end
+	end
+	-- If no custom pose was supplied, use the HMD pose as the VR camera pose
+	pose = pose or ent:GetPose()
+	for eyeIdx, eye in pairs(self.m_eyes) do
+		if eye:IsValid() then
+			eye:GetEntity():SetPose(pose)
+		end
+	end
 
-		local ent = self:GetEntity()
-		ent:SetPose(pose)
+	self:UpdateTrackedDevicePoses(ent:GetPose())
+	-- TODO: Tracked device poses should be clamped by IK
 
-		--entCam:SetPos(pos)
-		--entCam:SetRotation(rot)
-
-		for eyeIdx, eye in pairs(self.m_eyes) do
-			if eye:IsValid() then
-				eye:GetEntity():SetPose(pose)
+	self:InvokeEventCallbacks(ents.VRHMD.EVENT_ON_HMD_POSE_UPDATED, { pose })
+end
+function ents.VRHMD:UpdateTrackedDevicePoses(basePose)
+	for _, tdC in ipairs(self:GetTrackedDevices()) do
+		if tdC:IsValid() and tdC:IsHMD() == false then
+			-- tdC:UpdatePose(basePose)
+			if tdC:IsController() then
+				local controllerC = tdC:GetEntity():GetComponent(ents.COMPONENT_VR_CONTROLLER)
+				if controllerC ~= nil then
+					controllerC:UpdateTriggerState()
+				end
 			end
 		end
-		self:InvokeEventCallbacks(ents.VRHMD.EVENT_ON_HMD_POSE_UPDATED, { pose })
 	end
 end
 local cvHideGameScene = console.get_convar("vr_hide_primary_game_scene")
@@ -390,6 +406,9 @@ end
 function ents.VRHMD:GetTrackedDevices()
 	return self.m_trackedDevices
 end
+function ents.VRHMD:GetControllersByRole(role)
+	return self.m_roleToController[role] or {}
+end
 function ents.VRHMD:AddTrackedDevice(ent, trackedDeviceIndex, type)
 	self.m_deviceClassToDevice[type] = self.m_deviceClassToDevice[type] or {}
 
@@ -405,6 +424,9 @@ function ents.VRHMD:AddTrackedDevice(ent, trackedDeviceIndex, type)
 	local typeIndex = self.m_trackedDeviceIndexToTypeIndex[trackedDeviceIndex]
 	if typeIndex == nil then
 		local role = openvr.get_controller_role(trackedDeviceIndex)
+		self.m_roleToController[role] = self.m_roleToController[role] or {}
+		table.insert(self.m_roleToController[role], tdC)
+
 		local typeIndex
 		if role == openvr.TRACKED_CONTROLLER_ROLE_RIGHT_HAND then
 			typeIndex = 1
@@ -485,3 +507,4 @@ ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATION_CHANGED =
 	ents.register_component_event(ents.COMPONENT_VR_HMD, "tracked_device_activation_changed")
 ents.VRHMD.EVENT_ON_HMD_INITIALIZED = ents.register_component_event(ents.COMPONENT_VR_HMD, "hmd_initialized")
 ents.VRHMD.EVENT_ON_HMD_POSE_UPDATED = ents.register_component_event(ents.COMPONENT_VR_HMD, "hmd_pose_updated")
+ents.VRHMD.EVENT_UPDATE_HMD_POSE = ents.register_component_event(ents.COMPONENT_VR_HMD, "update_hmd_pose")

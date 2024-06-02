@@ -8,60 +8,14 @@
 
 include("../shared.lua")
 
-local rotOffset = EulerAngles(0, 180, 0):ToQuaternion()
 ents.VRController.TRIGGER_STATE_RELEASE = 0
 ents.VRController.TRIGGER_STATE_TOUCH = 1
 ents.VRController.TRIGGER_STATE_PRESS = 2
-local cvDebugLines = console.get_convar("vr_debug_show_controller_location_pointers")
-function ents.VRController:UpdateOrientation()
+function ents.VRController:UpdateTriggerState()
 	local trackedDeviceC = self:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
 	if openvr == nil or trackedDeviceC == nil then
 		return
 	end
-	local pose, vel = trackedDeviceC:GetDevicePose()
-	if pose == nil then
-		return
-	end
-	--[[local pos = t *Vector4(0,0,0,1)
-	local rot = t:ToQuaternion()
-	
-	rot = rotOffset *rot
-	pos = Vector(pos.x,pos.y,pos.z) /util.units_to_metres(1.0)
-	pos:Rotate(rotOffset)
-	vel:Rotate(rotOffset)]]
-
-	--[[local scale,rot,pos,skew,perspective = t:Decompose()
-	pos = pos *util.metres_to_units(1)
-	rot = t:ToQuaternion()
-	if(self:GetEntity():IsClientsideOnly() == false) then
-		local packet = net.Packet()
-		packet:WriteEntity(self:GetEntity())
-		packet:WriteVector(pos)
-		packet:WriteVector(vel)
-		packet:WriteQuaternion(rot)
-		net.send(net.PROTOCOL_FAST_UNRELIABLE,"vr_controller_update_orientation",packet)
-	end]]
-
-	if self:GetEntity():IsClientsideOnly() == false then
-		local packet = net.Packet()
-		packet:WriteEntity(self:GetEntity())
-		packet:WriteVector(pose:GetOrigin())
-		packet:WriteVector(vel)
-		packet:WriteQuaternion(pose:GetRotation())
-		net.send(net.PROTOCOL_FAST_UNRELIABLE, "vr_controller_update_orientation", packet)
-	end
-
-	self:SetControllerTransform(pose:GetOrigin(), pose:GetRotation(), vel)
-	if cvDebugLines:GetBool() then
-		local owner = self:GetOwner()
-		if util.is_valid(owner) then
-			debug.draw_line(owner:GetPos() + owner:GetForward() * 20, self:GetEntity():GetPos(), Color.Yellow, 0.1)
-		end
-		debug.draw_line(self:GetEntity():GetPos(), self:GetEntity():GetPos() + Vector(0, 100, 0), Color.Aqua, 0.1)
-	end
-
-	-- debug.draw_line(Vector(),self:GetEntity():GetPos(),Color.Red,1)
-
 	local state = openvr.get_controller_state(trackedDeviceC:GetTrackedDeviceIndex())
 	if state ~= nil then
 		-- TODO: Implement this properly for all buttons / axes as generic key inputs
@@ -170,7 +124,6 @@ function ents.VRController:Raycast()
 end
 
 function ents.VRController:OnTick(dt)
-	self:UpdateOrientation()
 	if self.m_cursorEnabled and self.m_laserEnabled and util.is_valid(self.m_laser) then
 		local owner = self:GetPlayerOwner()
 		local charComponent = (owner ~= nil) and owner:GetComponent(ents.COMPONENT_CHARACTER) or nil

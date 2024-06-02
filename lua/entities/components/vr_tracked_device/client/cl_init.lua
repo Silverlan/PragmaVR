@@ -20,6 +20,21 @@ function ents.VRTrackedDevice:Initialize()
 	self:SetForceActive(cvForceAlwaysActive:GetBool())
 end
 
+local cvShowRenderModels = console.get_convar("vr_show_rendermodels")
+function ents.VRTrackedDevice:UpdateRenderModel()
+	local showRenderModel = cvShowRenderModels:GetBool()
+	if showRenderModel == false or self:GetEntity():IsSpawned() == false then
+		util.remove(self.m_renderModel)
+		self:GetEntity():RemoveComponent("debug_draw_axis")
+		return
+	end
+	if not util.is_valid(self.m_hmdC) then
+		return
+	end
+	self:GetEntity():AddComponent("debug_draw_axis")
+	self:InitializeRenderModel()
+end
+
 local rotY90 = EulerAngles(0, 180, 0):ToQuaternion()
 local rotP90 = EulerAngles(90, 0, 0):ToQuaternion()
 function ents.VRTrackedDevice:InitializeRenderModel()
@@ -44,9 +59,7 @@ function ents.VRTrackedDevice:InitializeRenderModel()
 end
 
 function ents.VRTrackedDevice:OnEntitySpawn()
-	if util.is_valid(self.m_hmdC) then
-		self:InitializeRenderModel()
-	end
+	self:UpdateRenderModel()
 end
 
 function ents.VRTrackedDevice:OnRemove()
@@ -81,10 +94,8 @@ function ents.VRTrackedDevice:Setup(hmdC, trackedDeviceIndex, type, typeIndex)
 	self:SetTypeIndex(typeIndex)
 	self:UpdateUserInteractionState()
 
+	self:UpdateRenderModel()
 	self:GetEntity():SetParent(hmdC:GetEntity())
-	if self:GetEntity():IsSpawned() then
-		self:InitializeRenderModel()
-	end
 end
 function ents.VRTrackedDevice:GetHMD()
 	return self.m_hmdC
@@ -156,6 +167,33 @@ function ents.VRTrackedDevice:UpdateUserInteractionState()
 		self:SetUserInteractionState(ents.VRTrackedDevice.USER_INTERACTION_ACTIVE)
 	elseif level == openvr.DEVICE_ACTIVITY_LEVEL_IDLE then
 		self:SetUserInteractionState(ents.VRTrackedDevice.USER_INTERACTION_INACTIVE)
+	end
+end
+local cvDebugLines = console.get_convar("vr_debug_show_controller_location_pointers")
+function ents.VRTrackedDevice:UpdatePose(basePose)
+	local pose, vel = self:GetDevicePose()
+	if pose == nil then
+		return
+	end
+
+	--[[if self:GetEntity():IsClientsideOnly() == false then
+		local packet = net.Packet()
+		packet:WriteEntity(self:GetEntity())
+		packet:WriteVector(pose:GetOrigin())
+		packet:WriteVector(vel)
+		packet:WriteQuaternion(pose:GetRotation())
+		net.send(net.PROTOCOL_FAST_UNRELIABLE, "vr_controller_update_orientation", packet)
+	end]]
+
+	pose = basePose * pose
+	self:GetEntity():SetPose(pose)
+
+	if cvDebugLines:GetBool() then
+		local owner = self:GetOwner()
+		if util.is_valid(owner) then
+			debug.draw_line(owner:GetPos() + owner:GetForward() * 20, self:GetEntity():GetPos(), Color.Yellow, 0.1)
+		end
+		debug.draw_line(self:GetEntity():GetPos(), self:GetEntity():GetPos() + Vector(0, 100, 0), Color.Aqua, 0.1)
 	end
 end
 

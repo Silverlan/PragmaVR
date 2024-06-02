@@ -150,6 +150,14 @@ console.register_variable(
 	"If enabled, HMD will never be put into inactive state."
 )
 
+console.register_variable(
+	"vr_show_rendermodels",
+	udm.TYPE_BOOLEAN,
+	false,
+	0,
+	"If enabled, tracked devices will be rendered as models."
+)
+
 console.register_variable("vr_debug_mode", udm.TYPE_BOOLEAN, false, 0, "Enables the vr developer debug mode.")
 
 console.register_variable(
@@ -171,6 +179,12 @@ console.register_variable(
 console.add_change_callback("vr_force_always_active", function(old, new)
 	for ent in ents.iterator({ ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE) }) do
 		ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE):SetForceActive(toboolean(new))
+	end
+end)
+
+console.add_change_callback("vr_show_rendermodels", function(old, new)
+	for ent in ents.iterator({ ents.IteratorFilterComponent(ents.COMPONENT_VR_TRACKED_DEVICE) }) do
+		ent:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE):UpdateRenderModel()
 	end
 end)
 
