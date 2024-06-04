@@ -246,6 +246,18 @@ function Component:SetMetaBonesAnimated(animated)
 		end
 	end
 end
+-- We'll apply an offset to the HMD pose, which will make the IK pose match the real-world pose
+-- more closely.
+local HMD_TO_IK_POSE_OFFSET_HEAD = math.Transform(Vector(0, 0, -3), EulerAngles(0, 0, 0))
+-- The default meta-bone pose for the hands makes the palm face downwards, with the hand point forward along the z-axis.
+-- However, the default pose when holding a VR controller has the palm face sideways. We have to rotate by 90 degrees to adjust.
+local HMD_TO_IK_POSE_OFFSET_LEFT_HAND = math.Transform(Vector(2, -3.5, -2.5), EulerAngles(0, 0, -90))
+local HMD_TO_IK_POSE_OFFSET_RIGHT_HAND = math.Transform(Vector(-2, -3.5, -2.5), EulerAngles(0, 0, 90))
+
+local HMD_TO_IK_POSE_OFFSET_HEAD_INV = HMD_TO_IK_POSE_OFFSET_HEAD:GetInverse()
+local HMD_TO_IK_POSE_OFFSET_LEFT_HAND_INV = HMD_TO_IK_POSE_OFFSET_LEFT_HAND:GetInverse()
+local HMD_TO_IK_POSE_OFFSET_RIGHT_HAND_INV = HMD_TO_IK_POSE_OFFSET_RIGHT_HAND:GetInverse()
+
 -- Moves the HMD to the post-IK head location
 function Component:UpdateHmdPose(hmdPoseData)
 	local entHmd = self:GetHMD()
@@ -263,19 +275,21 @@ function Component:UpdateHmdPose(hmdPoseData)
 			self.m_prePovPose = entCam:GetPose()
 		end
 	end
-	entHmd:SetPose(pose)
+	entHmd:SetPose(pose * HMD_TO_IK_POSE_OFFSET_HEAD_INV)
 
 	local hmdC = entHmd:GetComponent(ents.COMPONENT_VR_HMD)
 	if hmdC ~= nil then
 		local leftController = hmdC:GetControllersByRole(openvr.TRACKED_CONTROLLER_ROLE_LEFT_HAND)[1]
 		if util.is_valid(leftController) then
 			local pose = self:GetMetaBonePose(Model.MetaRig.BONE_TYPE_LEFT_HAND)
+			pose = pose * HMD_TO_IK_POSE_OFFSET_LEFT_HAND_INV
 			leftController:GetEntity():SetPose(pose)
 		end
 
 		local rightController = hmdC:GetControllersByRole(openvr.TRACKED_CONTROLLER_ROLE_RIGHT_HAND)[1]
 		if util.is_valid(rightController) then
 			local pose = self:GetMetaBonePose(Model.MetaRig.BONE_TYPE_RIGHT_HAND)
+			pose = pose * HMD_TO_IK_POSE_OFFSET_RIGHT_HAND_INV
 			rightController:GetEntity():SetPose(pose)
 		end
 	end
@@ -328,7 +342,11 @@ function Component:UpdateHeadIkControl()
 		return
 	end
 	ikC:SetDirty()
-	ikC:SetTransformMemberPose(self.m_headIkControlIdx, math.COORDINATE_SPACE_OBJECT, hmdPose)
+	ikC:SetTransformMemberPose(
+		self.m_headIkControlIdx,
+		math.COORDINATE_SPACE_OBJECT,
+		hmdPose * HMD_TO_IK_POSE_OFFSET_HEAD
+	)
 
 	-- For our POV perspective, we'll use the character's head as the VR camera view, instead of the actual HMD position.
 	-- As long as the HMD is within the IK bounds, they should be the same, but if the HMD is moved too far away from the IK,
@@ -350,14 +368,14 @@ function Component:UpdateHeadIkControl()
 		local leftController = hmdC:GetControllersByRole(openvr.TRACKED_CONTROLLER_ROLE_LEFT_HAND)[1]
 		if util.is_valid(leftController) and self.m_leftHandIkControlIdx ~= nil then
 			local controllerPose = refPose * math.ScaledTransform(leftController:GetDevicePose())
-			controllerPose:RotateLocal(EulerAngles(0, 0, -90):ToQuaternion()) -- TODO: Why do we need this?
+			controllerPose = controllerPose * HMD_TO_IK_POSE_OFFSET_LEFT_HAND
 			ikC:SetTransformMemberPose(self.m_leftHandIkControlIdx, math.COORDINATE_SPACE_OBJECT, controllerPose)
 		end
 
 		local rightController = hmdC:GetControllersByRole(openvr.TRACKED_CONTROLLER_ROLE_RIGHT_HAND)[1]
 		if util.is_valid(rightController) and self.m_rightHandIkControlIdx ~= nil then
 			local controllerPose = refPose * math.ScaledTransform(rightController:GetDevicePose())
-			controllerPose:RotateLocal(EulerAngles(0, 0, 90):ToQuaternion()) -- TODO: Why do we need this?
+			controllerPose = controllerPose * HMD_TO_IK_POSE_OFFSET_RIGHT_HAND
 			ikC:SetTransformMemberPose(self.m_rightHandIkControlIdx, math.COORDINATE_SPACE_OBJECT, controllerPose)
 		end
 	end
