@@ -103,6 +103,33 @@ function Component:Activate()
 		self.m_rightHandIkControlIdx = getIkControlIdx(Model.MetaRig.BONE_TYPE_RIGHT_HAND)
 
 		ikC:SetResetSolver(false)
+		local function getMetaRigSkeletalBone(metaBoneId)
+			local metaBone = metaRig:GetBone(metaBoneId)
+			if metaBone == nil then
+				return
+			end
+			local skel = mdl:GetSkeleton()
+			local bone = (skel ~= nil) and skel:GetBone(metaBone.boneId) or nil
+			if bone == nil then
+				return
+			end
+			return bone
+		end
+		-- We need to enable some IK controls that are disabled by default
+		local boneHead = getMetaRigSkeletalBone(Model.MetaRig.BONE_TYPE_HEAD)
+		if boneHead ~= nil then
+			ikC:SetMemberValue("control/" .. boneHead:GetName() .. "/strength", 4.0)
+		end
+
+		local boneLeftForearm = getMetaRigSkeletalBone(Model.MetaRig.BONE_TYPE_LEFT_LOWER_ARM)
+		if boneLeftForearm ~= nil then
+			ikC:SetMemberValue("control/" .. boneLeftForearm:GetName() .. "/strength", 0.4)
+		end
+
+		local boneRightForearm = getMetaRigSkeletalBone(Model.MetaRig.BONE_TYPE_RIGHT_LOWER_ARM)
+		if boneRightForearm ~= nil then
+			ikC:SetMemberValue("control/" .. boneRightForearm:GetName() .. "/strength", 0.4)
+		end
 	end
 
 	local animC = ent:GetComponent(ents.COMPONENT_ANIMATED)
