@@ -101,6 +101,8 @@ function Component:Activate()
 		self.m_headIkControlIdx = getIkControlIdx(Model.MetaRig.BONE_TYPE_HEAD)
 		self.m_leftHandIkControlIdx = getIkControlIdx(Model.MetaRig.BONE_TYPE_LEFT_HAND)
 		self.m_rightHandIkControlIdx = getIkControlIdx(Model.MetaRig.BONE_TYPE_RIGHT_HAND)
+
+		ikC:SetResetSolver(false)
 	end
 
 	local animC = ent:GetComponent(ents.COMPONENT_ANIMATED)
