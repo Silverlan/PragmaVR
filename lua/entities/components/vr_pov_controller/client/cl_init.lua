@@ -65,6 +65,10 @@ function Component:UpdateActiveState()
 	end
 end
 function Component:Clear()
+	if self.m_ownedIkSolver then
+		self:GetEntity():RemoveComponent(ents.COMPONENT_IK_SOLVER)
+	end
+	self.m_ownedIkSolver = nil
 	self.m_headIkControlIdx = nil
 	self.m_leftHandIkControlIdx = nil
 	self.m_rightHandIkControlIdx = nil
@@ -80,12 +84,35 @@ end
 local BONE_ZERO_SCALE = Vector(0.0001, 0.0001, 0.0001) -- Not quite zero, since that can cause some odd graphical glitches in some cases
 function Component:Activate()
 	self:Clear()
-	self:SetMetaBonesAnimated(true)
 
 	local ent = self:GetEntity()
+	local ikC = ent:GetComponent(ents.COMPONENT_IK_SOLVER)
+	self.m_ownedIkSolver = false
+	if ikC == nil then
+		ikC = ent:AddComponent(ents.COMPONENT_IK_SOLVER)
+		self.m_ownedIkSolver = true
+		if ikC == nil then
+			return
+		end
+	end
+	self:SetMetaBonesAnimated(true)
+
 	local mdl = ent:GetModel()
 	local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
 	local ikC = ent:GetComponent(ents.COMPONENT_IK_SOLVER)
+	if self.m_ownedIkSolver then
+		if rig == nil then
+			engine.load_library("pr_rig")
+		end
+		if rig ~= nil then
+			local ikRigData, ikRigPath = rig.generate_cached_ik_rig(mdl)
+			if ikRigPath ~= nil then
+				ikRigPath = file.to_relative_path(ikRigPath)
+				ikRigPath = file.make_relative(ikRigPath, rig.get_ik_rig_base_path())
+				ikC:SetMemberValue("rigConfigFile", ikRigPath)
+			end
+		end
+	end
 	if ikC ~= nil and metaRig ~= nil then
 		local function getIkControlIdx(metaBoneId)
 			local metaBone = metaRig:GetBone(metaBoneId)
@@ -130,6 +157,51 @@ function Component:Activate()
 		if boneRightForearm ~= nil then
 			ikC:SetMemberValue("control/" .. boneRightForearm:GetName() .. "/strength", 0.4)
 		end
+
+		local animC = ent:GetComponent(ents.COMPONENT_ANIMATED)
+		local ikSolver = ikC:GetIkSolver()
+		local skel = mdl:GetSkeleton()
+		if animC ~= nil and ikSolver ~= nil then
+			local n = ikSolver:GetControlCount()
+			for i = 0, n - 1 do
+				local ctrl = ikSolver:GetControl(i)
+				local bone = ctrl:GetTargetBone()
+				local boneName = bone:GetName()
+				local boneId = skel:LookupBone(boneName)
+				if boneId ~= -1 then
+					local metaBoneId = metaRig:FindMetaBoneType(boneId)
+					if metaBoneId ~= nil then
+						local pose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
+						if pose ~= nil then
+							ikC:SetMemberValue("control/" .. boneName .. "/position", pose:GetOrigin())
+							ikC:SetMemberValue("control/" .. boneName .. "/rotation", pose:GetRotation())
+						end
+					end
+				end
+			end
+		end
+
+		local n = ikSolver:GetBoneCount()
+		--[[for i = 0, n - 1 do
+			local bone = ikSolver:GetBone(i)
+			local boneName = bone:GetName()
+			local boneId = skel:LookupBone(boneName)
+			local metaBoneId = metaRig:FindMetaBoneType(boneId)
+			if metaBoneId ~= nil then
+				local pose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
+				if pose ~= nil then
+					ikC:SetMemberValue("control/" .. boneName .. "/position", pose:GetOrigin())
+					ikC:SetMemberValue("control/" .. boneName .. "/rotation", pose:GetRotation())
+					--bone:SetPos(pose:GetOrigin())
+					--bone:SetRot(pose:GetRotation())
+					ikC:SetBoneLocked(boneId, true)
+				end
+			end
+		end]]
+		--[[local boneHips = getMetaRigSkeletalBone(Model.MetaRig.BONE_TYPE_HIPS)
+		if boneHips ~= nil then
+			ikC:SetBoneLocked(boneHips:GetID(), true)
+		end]]
 	end
 
 	local animC = ent:GetComponent(ents.COMPONENT_ANIMATED)
@@ -167,11 +239,42 @@ function Component:Activate()
 	if util.is_valid(entHmd) then
 		local hmdC = entHmd:GetComponent(ents.COMPONENT_VR_HMD)
 		if hmdC ~= nil then
+			util.remove(self.m_cbUpdateHmdPose)
 			self.m_cbUpdateHmdPose = hmdC:AddEventCallback(ents.VRHMD.EVENT_UPDATE_HMD_POSE, function(hmdPoseData)
 				self:UpdateHmdPose(hmdPoseData)
 				return util.EVENT_REPLY_HANDLED
 			end)
 		end
+	end
+end
+function Component:TestX()
+	local ent = self:GetEntity()
+	local mdl = ent:GetModel()
+	local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
+	local ikC = ent:GetComponent(ents.COMPONENT_IK_SOLVER)
+	if ikC ~= nil and metaRig ~= nil then
+		local animC = ent:GetComponent(ents.COMPONENT_ANIMATED)
+		local ikSolver = ikC:GetIkSolver()
+		local skel = mdl:GetSkeleton()
+		local n = ikSolver:GetBoneCount()
+		for i = 0, n - 1 do
+			local bone = ikSolver:GetBone(i)
+			local boneName = bone:GetName()
+			local boneId = skel:LookupBone(boneName)
+			local metaBoneId = metaRig:FindMetaBoneType(boneId)
+			if metaBoneId ~= nil then
+				local pose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
+				if pose ~= nil then
+					--bone:SetPos(pose:GetOrigin())
+					--bone:SetRot(pose:GetRotation())
+					--ikC:SetBoneLocked(boneId, true)
+				end
+			end
+		end
+		--[[local boneHips = getMetaRigSkeletalBone(Model.MetaRig.BONE_TYPE_HIPS)
+		if boneHips ~= nil then
+			ikC:SetBoneLocked(boneHips:GetID(), true)
+		end]]
 	end
 end
 function Component:UpdateHeadBoneScales()
@@ -217,32 +320,43 @@ function Component:SetMetaBonesAnimated(animated)
 	if metaRig == nil then
 		return
 	end
-	local metaBoneId = Model.MetaRig.BONE_TYPE_HEAD
-	local metaBone = metaRig:GetBone(metaBoneId)
+	--local metaBoneId = Model.MetaRig.BONE_TYPE_HEAD
+	--local metaBone = metaRig:GetBone(metaBoneId)
+	local ikC = self:GetEntity():GetComponent(ents.COMPONENT_IK_SOLVER)
+	if ikC == nil then
+		return
+	end
 	local boneIds = {}
-	while metaBone ~= nil do
+	local ikSolver = ikC:GetIkSolver()
+	local n = ikSolver:GetBoneCount()
+	local skel = mdl:GetSkeleton()
+	for i = 0, n - 1 do
+		local bone = ikSolver:GetBone(i)
+		local boneName = bone:GetName()
+		local boneId = skel:LookupBone(boneName)
+		table.insert(boneIds, boneId)
+	end
+	--[[while metaBone ~= nil do
 		table.insert(boneIds, metaBone.boneId)
 		metaBoneId = mdl:GetMetaRigBoneParentId(metaBoneId)
 		metaBone = (metaBoneId ~= nil) and metaRig:GetBone(metaBoneId) or nil
-	end
+	end]]
 
 	local animC = entRef:GetComponent(ents.COMPONENT_ANIMATED)
 	if animC == nil then
 		return
 	end
+
 	local skel = mdl:GetSkeleton()
 	for _, boneId in ipairs(boneIds) do
 		local bone = skel:GetBone(boneId)
 		if bone ~= nil then
 			local boneName = bone:GetName()
-			local bonePose = mdl:GetReferenceBonePose(boneName, math.COORDINATE_SPACE_LOCAL)
-			if bonePose ~= nil then
-				-- Reset bone pose
-				-- TODO: Unless they are already animated?
-				animC:SetBonePose(boneName, bonePose)
+			-- Just take the current bone pose and make it animated
+			if animated then
+				animC:SetPropertyAnimated("bone/" .. boneName .. "/position", animated)
+				animC:SetPropertyAnimated("bone/" .. boneName .. "/rotation", animated)
 			end
-			animC:SetPropertyAnimated("bone/" .. boneName .. "/position", animated)
-			animC:SetPropertyAnimated("bone/" .. boneName .. "/rotation", animated)
 		end
 	end
 end
@@ -265,6 +379,9 @@ function Component:UpdateHmdPose(hmdPoseData)
 		return
 	end
 	local pose = self:GetHeadPose()
+	if pose == nil then
+		return
+	end
 	self.m_prevHmdHeadPose = pose
 	pose = self:GetEntity():GetPose() * pose
 
