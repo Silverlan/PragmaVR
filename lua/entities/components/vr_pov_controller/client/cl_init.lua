@@ -378,12 +378,13 @@ function Component:UpdateHmdPose(hmdPoseData)
 	if util.is_valid(entHmd) == false then
 		return
 	end
-	local pose = self:GetHeadPose()
-	if pose == nil then
+	local headPose = self:GetHeadPose()
+	if headPose == nil then
 		return
 	end
-	self.m_prevHmdHeadPose = pose
-	pose = self:GetEntity():GetPose() * pose
+	self.m_prevHmdHeadPose = headPose
+	local entPose = self:GetEntity():GetPose()
+	headPose = entPose * headPose
 
 	local entCam = self:GetCamera()
 	if self.m_wasPov == false and self:IsPov() then
@@ -392,7 +393,7 @@ function Component:UpdateHmdPose(hmdPoseData)
 			self.m_prePovPose = entCam:GetPose()
 		end
 	end
-	entHmd:SetPose(pose * HMD_TO_IK_POSE_OFFSET_HEAD_INV)
+	entHmd:SetPose(math.Transform(headPose) * HMD_TO_IK_POSE_OFFSET_HEAD_INV)
 
 	local hmdC = entHmd:GetComponent(ents.COMPONENT_VR_HMD)
 	if hmdC ~= nil then
@@ -400,20 +401,20 @@ function Component:UpdateHmdPose(hmdPoseData)
 		if util.is_valid(leftController) then
 			local pose = self:GetMetaBonePose(Model.MetaRig.BONE_TYPE_LEFT_HAND)
 			pose = pose * HMD_TO_IK_POSE_OFFSET_LEFT_HAND_INV
-			leftController:GetEntity():SetPose(pose)
+			leftController:GetEntity():SetPose(math.Transform(entPose * pose))
 		end
 
 		local rightController = hmdC:GetControllersByRole(openvr.TRACKED_CONTROLLER_ROLE_RIGHT_HAND)[1]
 		if util.is_valid(rightController) then
 			local pose = self:GetMetaBonePose(Model.MetaRig.BONE_TYPE_RIGHT_HAND)
 			pose = pose * HMD_TO_IK_POSE_OFFSET_RIGHT_HAND_INV
-			rightController:GetEntity():SetPose(pose)
+			rightController:GetEntity():SetPose(math.Transform(entPose * pose))
 		end
 	end
 
 	if self:IsPov() then
 		if util.is_valid(entCam) then
-			entCam:SetPose(pose)
+			entCam:SetPose(math.Transform(headPose))
 		end
 	else
 		hmdPoseData.cameraPose = entCam:GetPose()
