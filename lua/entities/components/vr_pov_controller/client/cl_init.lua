@@ -36,11 +36,8 @@ function Component:Initialize()
 		This is handled in :UpdateHmdPose()
 	]]
 end
-function Component:SetTargetActor(actor)
-	self.m_targetActor = actor
-end
 function Component:GetTargetActor()
-	return self.m_targetActor
+	return self:GetEntity()
 end
 function Component:SetHMD(hmd)
 	self.m_hmd = hmd
