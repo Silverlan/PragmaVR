@@ -99,7 +99,6 @@ function Component:Activate()
 
 	local mdl = ent:GetModel()
 	local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
-	local ikC = ent:GetComponent(ents.COMPONENT_IK_SOLVER)
 	if self.m_ownedIkSolver then
 		if rig == nil then
 			engine.load_library("pr_rig")
@@ -113,15 +112,20 @@ function Component:Activate()
 			end
 		end
 	end
-	if ikC ~= nil and metaRig ~= nil then
+	if metaRig == nil then
+		self:LogWarn("Model '" .. mdl:GetName() .. "' has no meta-rig!")
+	else
 		local function getIkControlIdx(metaBoneId)
 			local metaBone = metaRig:GetBone(metaBoneId)
 			if metaBone ~= nil then
 				local skel = mdl:GetSkeleton()
 				local bone = skel:GetBone(metaBone.boneId)
-				local memberIdx = ikC:GetMemberIndex("control/" .. bone:GetName() .. "/pose")
+				local memberPath = "control/" .. bone:GetName() .. "/pose"
+				local memberIdx = ikC:GetMemberIndex(memberPath)
 				if memberIdx ~= nil then
 					return memberIdx
+				else
+					self:LogWarn("Member '" .. memberPath .. "' does not exist!")
 				end
 			end
 		end
@@ -233,6 +237,8 @@ function Component:Activate()
 				neckBoneId = (metaBoneNeck ~= nil) and metaBoneNeck.boneId or nil,
 			}
 		end
+	else
+		self:LogWarn("No target actor has been set!")
 	end
 
 	local entHmd = self:GetHMD()
@@ -245,6 +251,8 @@ function Component:Activate()
 				return util.EVENT_REPLY_HANDLED
 			end)
 		end
+	else
+		self:LogWarn("No HMD has been set!")
 	end
 end
 function Component:TestX()
@@ -316,14 +324,20 @@ end
 function Component:SetMetaBonesAnimated(animated)
 	local entRef = self:GetTargetActor()
 	local mdl = util.is_valid(entRef) and entRef:GetModel() or nil
-	local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
+	if mdl == nil then
+		self:LogWarn("Unable to make meta-bones animated: Entity has no model!")
+		return
+	end
+	local metaRig = mdl:GetMetaRig()
 	if metaRig == nil then
+		self:LogWarn("Unable to make meta-bones animated: Model '" .. mdl:GetName() .. "' has no meta-rig!")
 		return
 	end
 	--local metaBoneId = Model.MetaRig.BONE_TYPE_HEAD
 	--local metaBone = metaRig:GetBone(metaBoneId)
 	local ikC = self:GetEntity():GetComponent(ents.COMPONENT_IK_SOLVER)
 	if ikC == nil then
+		self:LogWarn("Unable to make meta-bones animated: Entity has no ik-solver component!")
 		return
 	end
 	local boneIds = {}
@@ -344,6 +358,7 @@ function Component:SetMetaBonesAnimated(animated)
 
 	local animC = entRef:GetComponent(ents.COMPONENT_ANIMATED)
 	if animC == nil then
+		self:LogWarn("Unable to make meta-bones animated: Entity has no animated component!")
 		return
 	end
 
