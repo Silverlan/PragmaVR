@@ -189,12 +189,12 @@ console.add_change_callback("vr_show_rendermodels", function(old, new)
 end)
 
 console.register_command("vr_reset_body", function()
-	local ent = ents.iterator({ ents.IteratorFilterComponent(ents.COMPONENT_VR_BODY) })()
+	local ent = ents.iterator({ ents.IteratorFilterComponent(ents.COMPONENT_VR_POV_CONTROLLER) })()
 	if ent == nil then
 		console.print_warning("No VR body found!")
 		return
 	end
-	local vrBodyC = ent:GetComponent(ents.COMPONENT_VR_BODY)
+	local vrBodyC = ent:GetComponent(ents.COMPONENT_VR_POV_CONTROLLER)
 	vrBodyC:ResetIk()
 end)
 
