@@ -233,6 +233,18 @@ function Component:Activate()
 			end
 		end
 
+		if animC ~= nil then
+			-- The character's head may have an initial pitch and/or roll angle,
+			-- but the VR reference pose should always be on the horizontal plane, so we
+			-- calculate an offset rotation to compensate.
+			local pose = animC:GetMetaBonePose(Model.MetaRig.BONE_TYPE_HEAD, math.COORDINATE_SPACE_OBJECT)
+			local ang = pose:GetRotation():ToEulerAngles()
+			ang.y = 0.0
+			self.m_hmdOffsetPose = math.Transform(Vector(), ang:ToQuaternion():GetInverse())
+		else
+			self.m_hmdOffsetPose = math.Transform()
+		end
+
 		local lowerBodyEnabled = not self:IsUpperBodyOnly()
 		local lowerBodyMetaIds = Model.MetaRig.get_meta_rig_bone_ids(Model.MetaRig.BODY_PART_LOWER_BODY)
 		for _, metaId in ipairs(lowerBodyMetaIds) do
@@ -311,8 +323,8 @@ function Component:OnEntitySpawn()
 	-- We'll apply an offset to the HMD pose, which will make the IK pose match the real-world pose
 	-- more closely.
 	local offset = self:CalcHmdOffset()
-	self.m_hmdOffsetPose = math.Transform(offset, Quaternion())
-	self.m_hmdOffsetPoseInv = self.m_hmdOffsetPose:GetInverse()
+	self.m_hmdCameraOffsetPose = math.Transform(offset, Quaternion())
+
 	self:UpdateActiveState()
 end
 function Component:OnRemove()
@@ -436,7 +448,7 @@ function Component:UpdateHmdPose(hmdPoseData)
 			self.m_prePovPose = entCam:GetPose()
 		end
 	end
-	entHmd:SetPose(math.Transform(headPose) * self.m_hmdOffsetPose)
+	entHmd:SetPose(math.Transform(headPose) * self.m_hmdCameraOffsetPose)
 
 	local hmdC = entHmd:GetComponent(ents.COMPONENT_VR_HMD)
 	if hmdC ~= nil then
@@ -518,6 +530,7 @@ function Component:CalculateDesiredHMDPose()
 		return
 	end
 	local hmdPose = tdC:GetDevicePose()
+	headPose:SetRotation(self.m_hmdOffsetPose:GetRotation() * headPose:GetRotation())
 	return headPose * hmdPose, headPose
 end
 -- Attempts to move the head towards the desired HMD pose using IK
@@ -533,7 +546,7 @@ function Component:UpdateHeadIkControl()
 	end
 	ikC:SetDirty()
 
-	ikC:SetTransformMemberPose(self.m_headIkControlIdx, math.COORDINATE_SPACE_OBJECT, hmdPose * self.m_hmdOffsetPose)
+	ikC:SetTransformMemberPose(self.m_headIkControlIdx, math.COORDINATE_SPACE_OBJECT, hmdPose)
 
 	-- For our POV perspective, we'll use the character's head as the VR camera view, instead of the actual HMD position.
 	-- As long as the HMD is within the IK bounds, they should be the same, but if the HMD is moved too far away from the IK,
