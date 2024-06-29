@@ -7,6 +7,9 @@
 ]]
 
 local Component = util.register_class("ents.VrPovController", BaseEntityComponent)
+
+include("forearm_control.lua")
+
 Component:RegisterMember("Enabled", udm.TYPE_BOOLEAN, true, {
 	onChange = function(self)
 		self:UpdateActiveState()
@@ -15,6 +18,11 @@ Component:RegisterMember("Enabled", udm.TYPE_BOOLEAN, true, {
 Component:RegisterMember("Pov", ents.MEMBER_TYPE_BOOLEAN, true, {
 	onChange = function(self)
 		self:UpdatePovState()
+	end,
+}, "def+is")
+Component:RegisterMember("UpperBodyOnly", udm.TYPE_BOOLEAN, true, {
+	onChange = function(self)
+		self:UpdateUpperBodyState()
 	end,
 }, "def+is")
 function Component:Initialize()
@@ -73,8 +81,24 @@ function Component:Clear()
 	util.remove(self.m_cbUpdateHmdPose)
 	util.remove(self.m_cbOnAnimationsUpdated)
 end
+function Component:ResetPose()
+	local ent = self:GetEntity()
+	local ikC = ent:GetComponent(ents.COMPONENT_IK_SOLVER)
+	-- We want to reset to the base animation pose without IK, so we temporarily disable it
+	if ikC ~= nil then
+		ikC:SetAutoSimulate(false)
+	end
+	local animC = ent:GetComponent(ents.COMPONENT_ANIMATED)
+	if animC ~= nil then
+		animC:ResetPose()
+	end
+	if ikC ~= nil then
+		ikC:SetAutoSimulate(true)
+	end
+end
 function Component:Deactivate()
 	self:UpdateHeadBoneScales()
+	self:ResetPose()
 	self:SetMetaBonesAnimated(false)
 	self:Clear()
 end
@@ -92,6 +116,7 @@ function Component:Activate()
 			return
 		end
 	end
+	self:ResetPose()
 	self:SetMetaBonesAnimated(true)
 
 	local mdl = ent:GetModel()
@@ -112,12 +137,13 @@ function Component:Activate()
 	if metaRig == nil then
 		self:LogWarn("Model '" .. mdl:GetName() .. "' has no meta-rig!")
 	else
-		local function getIkControlIdx(metaBoneId)
+		local function getIkControlIdx(metaBoneId, propName)
+			propName = propName or "pose"
 			local metaBone = metaRig:GetBone(metaBoneId)
 			if metaBone ~= nil then
 				local skel = mdl:GetSkeleton()
 				local bone = skel:GetBone(metaBone.boneId)
-				local memberPath = "control/" .. bone:GetName() .. "/pose"
+				local memberPath = "control/" .. bone:GetName() .. "/" .. propName
 				local memberIdx = ikC:GetMemberIndex(memberPath)
 				if memberIdx ~= nil then
 					return memberIdx
@@ -129,6 +155,16 @@ function Component:Activate()
 		self.m_headIkControlIdx = getIkControlIdx(Model.MetaRig.BONE_TYPE_HEAD)
 		self.m_leftHandIkControlIdx = getIkControlIdx(Model.MetaRig.BONE_TYPE_LEFT_HAND)
 		self.m_rightHandIkControlIdx = getIkControlIdx(Model.MetaRig.BONE_TYPE_RIGHT_HAND)
+
+		for i = Model.MetaRig.BONE_TYPE_SPINE3, Model.MetaRig.BONE_TYPE_SPINE, -1 do
+			local metaBone = metaRig:GetBone(i)
+			if metaBone ~= nil then
+				self.m_spineMetaBoneId = i
+				break
+			end
+		end
+		self.m_leftForearmIkControlIdx = getIkControlIdx(Model.MetaRig.BONE_TYPE_LEFT_LOWER_ARM, "position")
+		self.m_rightForearmIkControlIdx = getIkControlIdx(Model.MetaRig.BONE_TYPE_RIGHT_LOWER_ARM, "position")
 
 		ikC:SetResetSolver(false)
 		local function getMetaRigSkeletalBone(metaBoneId)
@@ -159,55 +195,51 @@ function Component:Activate()
 			ikC:SetMemberValue("control/" .. boneRightForearm:GetName() .. "/strength", 0.4)
 		end
 
-		local animC = ent:GetComponent(ents.COMPONENT_ANIMATED)
 		local ikSolver = ikC:GetIkSolver()
 		local skel = mdl:GetSkeleton()
+		local entRef = self:GetTargetActor()
+		local animC = util.is_valid(entRef) and entRef:GetComponent(ents.COMPONENT_ANIMATED) or nil
 		if animC ~= nil and ikSolver ~= nil then
 			local n = ikSolver:GetControlCount()
 			for i = 0, n - 1 do
 				local ctrl = ikSolver:GetControl(i)
-				local bone = ctrl:GetTargetBone()
-				local boneName = bone:GetName()
-				local boneId = skel:LookupBone(boneName)
-				if boneId ~= -1 then
-					local metaBoneId = metaRig:FindMetaBoneType(boneId)
-					if metaBoneId ~= nil then
-						local pose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
-						if pose ~= nil then
-							ikC:SetMemberValue("control/" .. boneName .. "/position", pose:GetOrigin())
-							ikC:SetMemberValue("control/" .. boneName .. "/rotation", pose:GetRotation())
+				if ctrl:GetType() ~= util.IkRigConfig.Control.TYPE_POLE_TARGET then
+					local bone = ctrl:GetTargetBone()
+					local boneName = bone:GetName()
+					local boneId = skel:LookupBone(boneName)
+					if boneId ~= -1 then
+						local metaBoneId = metaRig:FindMetaBoneType(boneId)
+						if metaBoneId ~= nil then
+							local pose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
+							if pose ~= nil then
+								ikC:SetMemberValue("control/" .. boneName .. "/position", pose:GetOrigin())
+								ikC:SetMemberValue("control/" .. boneName .. "/rotation", pose:GetRotation())
+
+								local ikBoneId = ikC:GetIkBoneId(boneId)
+								if ikBoneId ~= nil then
+									local bone = ikSolver:GetBone(ikBoneId)
+									bone:SetPos(pose:GetOrigin())
+									bone:SetRot(pose:GetRotation())
+								end
+							end
 						end
 					end
 				end
 			end
 		end
 
-		local n = ikSolver:GetBoneCount()
-		--[[for i = 0, n - 1 do
-			local bone = ikSolver:GetBone(i)
-			local boneName = bone:GetName()
-			local boneId = skel:LookupBone(boneName)
-			local metaBoneId = metaRig:FindMetaBoneType(boneId)
-			if metaBoneId ~= nil then
-				local pose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
-				if pose ~= nil then
-					ikC:SetMemberValue("control/" .. boneName .. "/position", pose:GetOrigin())
-					ikC:SetMemberValue("control/" .. boneName .. "/rotation", pose:GetRotation())
-					--bone:SetPos(pose:GetOrigin())
-					--bone:SetRot(pose:GetRotation())
-					ikC:SetBoneLocked(boneId, true)
+		local lowerBodyEnabled = not self:IsUpperBodyOnly()
+		local lowerBodyMetaIds = Model.MetaRig.get_meta_rig_bone_ids(Model.MetaRig.BODY_PART_LOWER_BODY)
+		for _, metaId in ipairs(lowerBodyMetaIds) do
+			local bone = getMetaRigSkeletalBone(metaId)
+			if bone ~= nil then
+				if metaId == Model.MetaRig.BONE_TYPE_HIPS then
+					ikC:SetBoneLocked(bone:GetID(), not lowerBodyEnabled)
+				else
+					ikC:SetBoneEnabled(bone:GetID(), lowerBodyEnabled)
 				end
 			end
-		end]]
-		--[[local boneHips = getMetaRigSkeletalBone(Model.MetaRig.BONE_TYPE_HIPS)
-		if boneHips ~= nil then
-			ikC:SetBoneLocked(boneHips:GetID(), true)
-		end]]
-	end
-
-	local animC = ent:GetComponent(ents.COMPONENT_ANIMATED)
-	if animC ~= nil then
-		animC:SetPostAnimationUpdateEnabled(true)
+		end
 	end
 
 	self.m_targetActorHeadBones = {}
@@ -220,6 +252,7 @@ function Component:Activate()
 				function()
 					self:UpdateHeadIkControl()
 					self:HideHeadBones()
+					-- self:UpdateForearmControls()
 				end
 			)
 		end
@@ -252,36 +285,7 @@ function Component:Activate()
 		self:LogWarn("No HMD has been set!")
 	end
 end
-function Component:TestX()
-	local ent = self:GetEntity()
-	local mdl = ent:GetModel()
-	local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
-	local ikC = ent:GetComponent(ents.COMPONENT_IK_SOLVER)
-	if ikC ~= nil and metaRig ~= nil then
-		local animC = ent:GetComponent(ents.COMPONENT_ANIMATED)
-		local ikSolver = ikC:GetIkSolver()
-		local skel = mdl:GetSkeleton()
-		local n = ikSolver:GetBoneCount()
-		for i = 0, n - 1 do
-			local bone = ikSolver:GetBone(i)
-			local boneName = bone:GetName()
-			local boneId = skel:LookupBone(boneName)
-			local metaBoneId = metaRig:FindMetaBoneType(boneId)
-			if metaBoneId ~= nil then
-				local pose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
-				if pose ~= nil then
-					--bone:SetPos(pose:GetOrigin())
-					--bone:SetRot(pose:GetRotation())
-					--ikC:SetBoneLocked(boneId, true)
-				end
-			end
-		end
-		--[[local boneHips = getMetaRigSkeletalBone(Model.MetaRig.BONE_TYPE_HIPS)
-		if boneHips ~= nil then
-			ikC:SetBoneLocked(boneHips:GetID(), true)
-		end]]
-	end
-end
+function Component:UpdateUpperBodyState() end
 function Component:UpdateHeadBoneScales()
 	if self.m_targetActorHeadBones == nil then
 		return
@@ -298,6 +302,11 @@ function Component:UpdateHeadBoneScales()
 	end
 end
 function Component:OnEntitySpawn()
+	-- We'll apply an offset to the HMD pose, which will make the IK pose match the real-world pose
+	-- more closely.
+	local offset = self:CalcHmdOffset()
+	self.m_hmdOffsetPose = math.Transform(offset, Quaternion())
+	self.m_hmdOffsetPoseInv = self.m_hmdOffsetPose:GetInverse()
 	self:UpdateActiveState()
 end
 function Component:OnRemove()
@@ -316,6 +325,25 @@ function Component:UpdatePovState()
 		self.m_prePovPose = nil
 		self.m_wasPov = false
 	end
+end
+function Component:SetPovCamera(cc)
+	self:SetCamera(cc)
+end
+function Component:GetHeadBoneId()
+	local ent = self:GetEntity()
+	local mdl = ent:GetModel()
+	local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
+	if metaRig == nil then
+		return
+	end
+	local headBone = metaRig:GetBone(Model.MetaRig.BONE_TYPE_HEAD)
+	if headBone == nil then
+		return
+	end
+	return headBone.boneId
+end
+function Component:ResetIk()
+	-- TODO
 end
 -- Makes the head bone (and its parents) animated to avoid an IK feedback loop
 function Component:SetMetaBonesAnimated(animated)
@@ -359,6 +387,7 @@ function Component:SetMetaBonesAnimated(animated)
 		return
 	end
 
+	entRef:AddComponent(ents.COMPONENT_PANIMA)
 	local skel = mdl:GetSkeleton()
 	for _, boneId in ipairs(boneIds) do
 		local bone = skel:GetBone(boneId)
@@ -372,15 +401,11 @@ function Component:SetMetaBonesAnimated(animated)
 		end
 	end
 end
--- We'll apply an offset to the HMD pose, which will make the IK pose match the real-world pose
--- more closely.
-local HMD_TO_IK_POSE_OFFSET_HEAD = math.Transform(Vector(0, 0, -3), EulerAngles(0, 0, 0))
 -- The default meta-bone pose for the hands makes the palm face downwards, with the hand point forward along the z-axis.
 -- However, the default pose when holding a VR controller has the palm face sideways. We have to rotate by 90 degrees to adjust.
 local HMD_TO_IK_POSE_OFFSET_LEFT_HAND = math.Transform(Vector(2, -3.5, -2.5), EulerAngles(0, 0, -90))
 local HMD_TO_IK_POSE_OFFSET_RIGHT_HAND = math.Transform(Vector(-2, -3.5, -2.5), EulerAngles(0, 0, 90))
 
-local HMD_TO_IK_POSE_OFFSET_HEAD_INV = HMD_TO_IK_POSE_OFFSET_HEAD:GetInverse()
 local HMD_TO_IK_POSE_OFFSET_LEFT_HAND_INV = HMD_TO_IK_POSE_OFFSET_LEFT_HAND:GetInverse()
 local HMD_TO_IK_POSE_OFFSET_RIGHT_HAND_INV = HMD_TO_IK_POSE_OFFSET_RIGHT_HAND:GetInverse()
 
@@ -405,7 +430,7 @@ function Component:UpdateHmdPose(hmdPoseData)
 			self.m_prePovPose = entCam:GetPose()
 		end
 	end
-	entHmd:SetPose(math.Transform(headPose) * HMD_TO_IK_POSE_OFFSET_HEAD_INV)
+	entHmd:SetPose(math.Transform(headPose) * self.m_hmdOffsetPose)
 
 	local hmdC = entHmd:GetComponent(ents.COMPONENT_VR_HMD)
 	if hmdC ~= nil then
@@ -441,6 +466,35 @@ function Component:GetMetaBonePose(metaBoneId)
 	local propPose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
 	return propPose
 end
+function Component:CalcHmdOffset()
+	local entRef = self:GetTargetActor()
+	local mdl = util.is_valid(entRef) and entRef:GetModel() or nil
+	if mdl == nil then
+		return Vector()
+	end
+	local ref = mdl:GetReferencePose()
+	local eyeballs = mdl:GetEyeballs()
+	local eyeballPositions = {}
+	for _, eyeball in ipairs(eyeballs) do
+		local boneIndex = eyeball.boneIndex
+		local pose = ref:GetBonePose(boneIndex)
+		if pose ~= nil then
+			pose:TranslateLocal(eyeball.origin)
+			table.insert(eyeballPositions, pose:GetOrigin())
+		end
+	end
+	if #eyeballPositions > 0 then
+		local pos = vector.calc_average(eyeballPositions)
+		local headPose = mdl:GetMetaRigReferencePose(Model.MetaRig.BONE_TYPE_HEAD)
+		pos = headPose:GetInverse() * pos
+		return pos
+	end
+	local metaRig = mdl:GetMetaRig()
+	local metaHeadBone = metaRig:GetBone(Model.MetaRig.BONE_TYPE_HEAD)
+	local offset = (metaHeadBone.min + metaHeadBone.max) / 2.0
+	offset.z = metaHeadBone.max.z
+	return offset
+end
 -- Animated head pose in object space
 function Component:GetHeadPose()
 	return self:GetMetaBonePose(Model.MetaRig.BONE_TYPE_HEAD)
@@ -472,11 +526,8 @@ function Component:UpdateHeadIkControl()
 		return
 	end
 	ikC:SetDirty()
-	ikC:SetTransformMemberPose(
-		self.m_headIkControlIdx,
-		math.COORDINATE_SPACE_OBJECT,
-		hmdPose * HMD_TO_IK_POSE_OFFSET_HEAD
-	)
+
+	ikC:SetTransformMemberPose(self.m_headIkControlIdx, math.COORDINATE_SPACE_OBJECT, hmdPose * self.m_hmdOffsetPose)
 
 	-- For our POV perspective, we'll use the character's head as the VR camera view, instead of the actual HMD position.
 	-- As long as the HMD is within the IK bounds, they should be the same, but if the HMD is moved too far away from the IK,
