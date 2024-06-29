@@ -25,6 +25,11 @@ Component:RegisterMember("UpperBodyOnly", udm.TYPE_BOOLEAN, true, {
 		self:UpdateUpperBodyState()
 	end,
 }, "def+is")
+Component:RegisterMember("ShowHead", udm.TYPE_BOOLEAN, false, {
+	onChange = function(self)
+		self:UpdateHeadVisibilityState()
+	end,
+}, "def")
 function Component:Initialize()
 	--[[
 		This component allows controlling a character in POV using VR. It will only work if the character possesses a meta rig, as well as a full-body IK rig.
@@ -286,12 +291,13 @@ function Component:Activate()
 	end
 end
 function Component:UpdateUpperBodyState() end
+function Component:UpdateHeadVisibilityState() end
 function Component:UpdateHeadBoneScales()
 	if self.m_targetActorHeadBones == nil then
 		return
 	end
 	local entRef = self:GetTargetActor()
-	local scale = (self:IsEnabled() and self:IsPov()) and BONE_ZERO_SCALE or Vector(1, 1, 1)
+	local scale = (self:IsEnabled() and self:IsPov() and not self:GetShowHead()) and BONE_ZERO_SCALE or Vector(1, 1, 1)
 	local animC = util.is_valid(entRef) and entRef:GetComponent(ents.COMPONENT_ANIMATED) or nil
 	if animC == nil then
 		return
