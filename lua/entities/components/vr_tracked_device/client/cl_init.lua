@@ -35,6 +35,17 @@ function ents.VRTrackedDevice:UpdateRenderModel()
 	self:InitializeRenderModel()
 end
 
+function ents.VRTrackedDevice:UpdateRenderModelVisibility()
+	if self:IsHMD() == false or util.is_valid(self.m_renderModel) == false then
+		return
+	end
+	local show = (self:IsUserInteractionActive() == false)
+	local renderC = self.m_renderModel:GetComponent(ents.COMPONENT_RENDER)
+	if renderC ~= nil then
+		renderC:SetSceneRenderPass(show and game.SCENE_RENDER_PASS_WORLD or game.SCENE_RENDER_PASS_NONE)
+	end
+end
+
 local rotY90 = EulerAngles(0, 180, 0):ToQuaternion()
 local rotP90 = EulerAngles(90, 0, 0):ToQuaternion()
 function ents.VRTrackedDevice:InitializeRenderModel()
@@ -159,6 +170,8 @@ function ents.VRTrackedDevice:SetUserInteractionState(state)
 	self.m_userInteractionState = state
 	state = self.m_forceActive and ents.VRTrackedDevice.USER_INTERACTION_ACTIVE or state
 	self:BroadcastEvent(ents.VRTrackedDevice.EVENT_ON_USER_INTERACTION_STATE_CHANGED, { state })
+
+	self:UpdateRenderModelVisibility()
 end
 function ents.VRTrackedDevice:UpdateUserInteractionState()
 	local idx = self:GetTrackedDeviceIndex()
