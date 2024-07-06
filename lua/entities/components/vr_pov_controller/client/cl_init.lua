@@ -120,6 +120,7 @@ function Component:Activate()
 		if ikC == nil then
 			return
 		end
+		ikC:SetMultiThreaded(true)
 	end
 	self:ResetPose()
 	self:SetMetaBonesAnimated(true)
@@ -201,6 +202,7 @@ function Component:Activate()
 		end
 
 		local ikSolver = ikC:GetIkSolver()
+		ikC:Flush()
 		local skel = mdl:GetSkeleton()
 		local entRef = self:GetTargetActor()
 		local animC = util.is_valid(entRef) and entRef:GetComponent(ents.COMPONENT_ANIMATED) or nil
