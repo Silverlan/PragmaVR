@@ -118,6 +118,14 @@ console.register_command("vr_hmd_pose", function()
 	print("Velocity: ", vel)
 end)
 
+console.register_command("vr_pose_wait_time", function()
+	if openvr == nil then
+		console.print_warning("OpenVR module has not been loaded!")
+		return
+	end
+	print("Last pose wait time: " .. openvr.get_pose_wait_time() .. "ms")
+end)
+
 console.register_variable(
 	"vr_lock_hmd_pos_to_camera",
 	udm.TYPE_BOOLEAN,
