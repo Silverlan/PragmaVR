@@ -321,7 +321,7 @@ end
 function ents.VRHMD:UpdateTrackedDevicePoses(basePose)
 	for _, tdC in ipairs(self:GetTrackedDevices()) do
 		if tdC:IsValid() and tdC:IsHMD() == false then
-			-- tdC:UpdatePose(basePose)
+			tdC:UpdatePose(basePose)
 			if tdC:IsController() then
 				local controllerC = tdC:GetEntity():GetComponent(ents.COMPONENT_VR_CONTROLLER)
 				if controllerC ~= nil then
