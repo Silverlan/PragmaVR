@@ -109,11 +109,12 @@ function ents.VRController:OnRemove()
 	util.remove(self.m_laser)
 end
 
+local LASER_ROT_OFFSET = EulerAngles(-90 + 45, 0, 0):ToQuaternion()
 function ents.VRController:GetLaserRaycastData()
 	local ent = self:GetEntity()
 	local pos = ent:GetPos()
 	local rot = ent:GetRotation()
-	rot = rot * EulerAngles(90 + 45, 0, 0):ToQuaternion()
+	rot = rot * LASER_ROT_OFFSET
 	return ent:GetPos(), rot:GetForward()
 end
 
@@ -129,7 +130,6 @@ function ents.VRController:OnTick(dt)
 		local charComponent = (owner ~= nil) and owner:GetComponent(ents.COMPONENT_CHARACTER) or nil
 		if charComponent ~= nil then
 			local pos, dir = self:GetLaserRaycastData()
-			dir = -dir
 			local posDst = pos + dir * 2048.0
 
 			--[[local drawInfo = debug.DrawInfo()
@@ -139,11 +139,16 @@ function ents.VRController:OnTick(dt)
 
 			local srcPos = self:GetEntity():GetPos()
 			self.m_laser:SetPos(srcPos)
-			self.m_laser:SetRotation(self:GetEntity():GetRotation() * EulerAngles(90 + 45, 0, 0):ToQuaternion())
-			--local l = 500 --ray.position:Distance(srcPos)
-			--self.m_laser:SetScale(Vector(1, 1, l))
+			self.m_laser:SetRotation(self:GetEntity():GetRotation() * LASER_ROT_OFFSET)
 
-			self:BroadcastEvent(self.EVENT_UPDATE_LASER, { pos, -dir })
+			local hitActor, hitPos, startPos = self:Raycast()
+			local l = 500
+			if hitPos ~= nil then
+				l = startPos:Distance(hitPos)
+			end
+			self.m_laser:SetScale(Vector(1, 1, l))
+
+			self:BroadcastEvent(self.EVENT_UPDATE_LASER, { pos, dir })
 			--[[local rayData = charComponent:GetAimRayData(1200.0)
 			rayData:SetSource(pos)
 			rayData:SetTarget(posDst)
