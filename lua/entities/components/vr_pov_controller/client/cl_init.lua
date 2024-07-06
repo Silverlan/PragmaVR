@@ -53,9 +53,28 @@ function Component:GetTargetActor()
 	return self:GetEntity()
 end
 function Component:SetHMD(hmd)
+	util.remove(self.m_cbHmdInteractionStateChanged)
 	self.m_hmd = hmd
 	self.m_wasPov = false
 	self.m_prePovPose = nil
+
+	local tdC = hmd:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+	if tdC ~= nil then
+		self.m_cbHmdInteractionStateChanged = tdC:AddEventCallback(
+			ents.VRTrackedDevice.EVENT_ON_USER_INTERACTION_STATE_CHANGED,
+			function()
+				self:UpdateAvailability()
+			end
+		)
+	end
+	self:UpdateAvailability()
+end
+function Component:UpdateAvailability()
+	local tdC = util.is_valid(self.m_hmd) and self.m_hmd:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE) or nil
+	if tdC ~= nil then
+		self:SetEnabled(tdC:GetUserInteractionState() == ents.VRTrackedDevice.USER_INTERACTION_ACTIVE)
+	end
+	self:BroadcastEvent(Component.EVENT_ON_UPDATE_AVAILABILITY)
 end
 function Component:GetHMD()
 	return self.m_hmd
@@ -357,6 +376,7 @@ function Component:OnEntitySpawn()
 	self:UpdateActiveState()
 end
 function Component:OnRemove()
+	util.remove(self.m_cbHmdInteractionStateChanged)
 	self:Deactivate()
 end
 function Component:UpdatePovState()
@@ -613,3 +633,5 @@ function Component:HideHeadBones()
 	self:UpdateHeadBoneScales()
 end
 ents.COMPONENT_VR_POV_CONTROLLER = ents.register_component("vr_pov_controller", Component)
+Component.EVENT_ON_UPDATE_AVAILABILITY =
+	ents.register_component_event(ents.COMPONENT_VR_TRACKED_DEVICE, "on_update_availability")
