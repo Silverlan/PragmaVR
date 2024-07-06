@@ -210,24 +210,49 @@ function Component:Activate()
 			local n = ikSolver:GetControlCount()
 			for i = 0, n - 1 do
 				local ctrl = ikSolver:GetControl(i)
-				if ctrl:GetType() ~= util.IkRigConfig.Control.TYPE_POLE_TARGET then
-					local bone = ctrl:GetTargetBone()
-					local boneName = bone:GetName()
-					local boneId = skel:LookupBone(boneName)
-					if boneId ~= -1 then
-						local metaBoneId = metaRig:FindMetaBoneType(boneId)
-						if metaBoneId ~= nil then
-							local pose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
-							if pose ~= nil then
+				local bone = ctrl:GetTargetBone()
+				local boneName = bone:GetName()
+				local boneId = skel:LookupBone(boneName)
+				if boneId ~= -1 then
+					local metaBoneId = metaRig:FindMetaBoneType(boneId)
+					if metaBoneId ~= nil then
+						local pose = animC:GetMetaBonePose(metaBoneId, math.COORDINATE_SPACE_OBJECT)
+						if pose ~= nil then
+							if ctrl:GetType() == util.IkRigConfig.Control.TYPE_POLE_TARGET then
+								-- Move the pole targets to pre-determined locations (relative to the bone)
+								-- for more realistic character movements
+								local pos
+								if
+									metaBoneId == Model.MetaRig.BONE_TYPE_LEFT_LOWER_ARM
+									or metaBoneId == Model.MetaRig.BONE_TYPE_RIGHT_LOWER_ARM
+								then
+									local xFactor = 1.0
+									if metaBoneId == Model.MetaRig.BONE_TYPE_RIGHT_LOWER_ARM then
+										xFactor = -1.0
+									end
+									local offset = Vector(20.0 * xFactor, -15.0, -10.0) * metaRig:GetReferenceScale()
+									pos = pose:GetOrigin() + offset
+								elseif
+									metaBoneId == Model.MetaRig.BONE_TYPE_LEFT_LOWER_LEG
+									or metaBoneId == Model.MetaRig.BONE_TYPE_RIGHT_LOWER_LEG
+								then
+									local offset = (pose:GetUp() * 20.0 - pose:GetForward() * 20.0)
+										* metaRig:GetReferenceScale()
+									pos = pose:GetOrigin() + offset
+								end
+								if pos ~= nil then
+									ikC:SetMemberValue("control/" .. boneName .. "/position", pos)
+								end
+							else
 								ikC:SetMemberValue("control/" .. boneName .. "/position", pose:GetOrigin())
 								ikC:SetMemberValue("control/" .. boneName .. "/rotation", pose:GetRotation())
+							end
 
-								local ikBoneId = ikC:GetIkBoneId(boneId)
-								if ikBoneId ~= nil then
-									local bone = ikSolver:GetBone(ikBoneId)
-									bone:SetPos(pose:GetOrigin())
-									bone:SetRot(pose:GetRotation())
-								end
+							local ikBoneId = ikC:GetIkBoneId(boneId)
+							if ikBoneId ~= nil then
+								local bone = ikSolver:GetBone(ikBoneId)
+								bone:SetPos(pose:GetOrigin())
+								bone:SetRot(pose:GetRotation())
 							end
 						end
 					end
