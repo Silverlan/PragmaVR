@@ -192,13 +192,15 @@ function Component:Activate()
 		end
 
 		local boneLeftForearm = getMetaRigSkeletalBone(Model.MetaRig.BONE_TYPE_LEFT_LOWER_ARM)
+		-- Pole targets don't behave properly in real-time IK, so we'll disable them for now.
+		-- TODO: Figure out what's causing it.
 		if boneLeftForearm ~= nil then
-			ikC:SetMemberValue("control/" .. boneLeftForearm:GetName() .. "/strength", 0.4)
+			ikC:SetMemberValue("control/" .. boneLeftForearm:GetName() .. "/strength", 0.0)
 		end
 
 		local boneRightForearm = getMetaRigSkeletalBone(Model.MetaRig.BONE_TYPE_RIGHT_LOWER_ARM)
 		if boneRightForearm ~= nil then
-			ikC:SetMemberValue("control/" .. boneRightForearm:GetName() .. "/strength", 0.4)
+			ikC:SetMemberValue("control/" .. boneRightForearm:GetName() .. "/strength", 0.0)
 		end
 
 		local ikSolver = ikC:GetIkSolver()
