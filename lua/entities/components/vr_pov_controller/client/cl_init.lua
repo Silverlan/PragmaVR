@@ -141,11 +141,45 @@ function Component:Activate()
 		end
 		ikC:SetMultiThreaded(true)
 	end
+
+	-- We'll disable the swing-limit of the head control because it restricts head movement with the HMD
+	-- too much.
+	util.remove(self.m_cbOnRigInitialized)
+	local mdl = ent:GetModel()
+	local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
+	if metaRig ~= nil then
+		local metaBoneHead = metaRig:GetBone(Model.MetaRig.BONE_TYPE_HEAD)
+		if metaBoneHead ~= nil then
+			local skel = mdl:GetSkeleton()
+			local bone = skel:GetBone(metaBoneHead.boneId)
+			if bone ~= nil then
+				local headBoneName = bone:GetName()
+				self.m_cbOnRigInitialized = ikC:AddEventCallback(
+					ents.IkSolverComponent.EVENT_ON_IK_RIG_INITIALIZED,
+					function()
+						local ikSolver = ikC:GetIkSolver()
+						local numJoints = ikSolver:GetJointCount()
+						for i = 0, numJoints - 1 do
+							local joint = ikSolver:GetJoint(i)
+							local bone1 = joint:GetConnectionB()
+							if
+								bone1 ~= nil
+								and joint:GetType() == ik.Joint.TYPE_SWING_LIMIT
+								and bone1:GetName() == headBoneName
+							then
+								joint:SetEnabled(false)
+							end
+						end
+					end
+				)
+			end
+		end
+	end
+	--
+
 	self:ResetPose()
 	self:SetMetaBonesAnimated(true)
 
-	local mdl = ent:GetModel()
-	local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
 	if self.m_ownedIkSolver then
 		if rig == nil then
 			engine.load_library("pr_rig")
@@ -376,6 +410,7 @@ function Component:OnEntitySpawn()
 	self:UpdateActiveState()
 end
 function Component:OnRemove()
+	util.remove(self.m_cbOnRigInitialized)
 	util.remove(self.m_cbHmdInteractionStateChanged)
 	self:Deactivate()
 end
