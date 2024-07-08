@@ -84,7 +84,7 @@ function ents.VRController:UpdateLaser()
 	if util.is_valid(self.m_laser) then
 		return
 	end
-	local entLaser = ents.create("vr_controller_laser")
+	local entLaser = self:GetEntity():CreateChild("vr_controller_laser")
 	entLaser:Spawn()
 	self.m_laser = entLaser
 

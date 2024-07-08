@@ -27,7 +27,7 @@ function ents.VRHMD:Initialize()
 	self:SetTickPolicy(ents.TICK_POLICY_ALWAYS)
 end
 function ents.VRHMD:InitializeEye(eyeIdx)
-	local ent = ents.create("vr_hmd_eye")
+	local ent = self:GetEntity():CreateChild("vr_hmd_eye")
 	local eyeC = ent:GetComponent(ents.COMPONENT_VR_HMD_EYE)
 	if eyeC ~= nil then
 		eyeC:Setup(self, eyeIdx)
@@ -469,7 +469,7 @@ function ents.VRHMD:AddController(trackedDeviceIndex)
 		return tdC:GetEntity():GetComponent(ents.COMPONENT_VR_CONTROLLER)
 	end
 
-	local ent = ents.create("vr_controller")
+	local ent = self:GetEntity():CreateChild("vr_controller")
 	if ent == nil then
 		return
 	end

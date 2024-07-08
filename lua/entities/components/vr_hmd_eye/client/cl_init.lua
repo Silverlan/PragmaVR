@@ -82,7 +82,7 @@ function ents.VRHMDEye:UpdateProjectionMatrix()
 	camC:SetProjectionMatrix(matProj)
 end
 function ents.VRHMDEye:InitializeRenderer(scene)
-	local entRenderer = ents.create("rasterization_renderer")
+	local entRenderer = self:GetEntity():CreateChild("rasterization_renderer")
 	local renderer = entRenderer:GetComponent(ents.COMPONENT_RENDERER)
 	local rasterizer = entRenderer:GetComponent(ents.COMPONENT_RASTERIZATION_RENDERER)
 	local width, height = openvr.get_recommended_render_target_size()

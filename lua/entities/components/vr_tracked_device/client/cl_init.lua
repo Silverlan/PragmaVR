@@ -50,7 +50,7 @@ local rotY90 = EulerAngles(0, 180, 0):ToQuaternion()
 local rotP90 = EulerAngles(90, 0, 0):ToQuaternion()
 function ents.VRTrackedDevice:InitializeRenderModel()
 	if util.is_valid(self.m_renderModel) == false then
-		local ent = ents.create("prop_dynamic")
+		local ent = self:GetEntity():CreateChild("prop_dynamic")
 		self.m_renderModel = ent
 		ent:Spawn()
 		if util.is_valid(self.m_renderModel) == false then
