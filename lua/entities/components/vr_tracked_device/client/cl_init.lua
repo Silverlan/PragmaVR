@@ -66,7 +66,10 @@ function ents.VRTrackedDevice:InitializeRenderModel()
 		renderModelOffsetPose:RotateLocal(rotP90)
 	end
 	self.m_renderModel:SetPose(self:GetEntity():GetPose() * renderModelOffsetPose)
-	self.m_renderModel:SetParent(self:GetEntity())
+
+	local attInfo = ents.AttachmentComponent.AttachmentInfo()
+	attInfo.flags = ents.AttachmentComponent.FATTACHMENT_MODE_UPDATE_EACH_FRAME
+	self.m_renderModel:AddComponent(ents.COMPONENT_ATTACHMENT):AttachToEntity(self:GetEntity(), attInfo)
 end
 
 function ents.VRTrackedDevice:OnEntitySpawn()
@@ -106,7 +109,11 @@ function ents.VRTrackedDevice:Setup(hmdC, trackedDeviceIndex, type, typeIndex)
 	self:UpdateUserInteractionState()
 
 	self:UpdateRenderModel()
-	self:GetEntity():SetParent(hmdC:GetEntity())
+	local ent = self:GetEntity()
+	local hmdEnt = hmdC:GetEntity()
+	if util.is_same_object(ent, hmdEnt) == false then
+		ent:SetParent(hmdEnt)
+	end
 end
 function ents.VRTrackedDevice:GetHMD()
 	return self.m_hmdC
@@ -202,11 +209,15 @@ function ents.VRTrackedDevice:UpdatePose(basePose)
 	self:GetEntity():SetPose(pose)
 
 	if cvDebugLines:GetBool() then
-		local owner = self:GetOwner()
+		local owner = self:GetEntity():GetOwner()
+		local dbgInfo = debug.DrawInfo()
+		dbgInfo:SetDuration(0.1)
 		if util.is_valid(owner) then
-			debug.draw_line(owner:GetPos() + owner:GetForward() * 20, self:GetEntity():GetPos(), Color.Yellow, 0.1)
+			dbgInfo:SetColor(Color.Yellow)
+			debug.draw_line(owner:GetPos() + owner:GetForward() * 20, self:GetEntity():GetPos(), dbgInfo)
 		end
-		debug.draw_line(self:GetEntity():GetPos(), self:GetEntity():GetPos() + Vector(0, 100, 0), Color.Aqua, 0.1)
+		dbgInfo:SetColor(Color.Aqua)
+		debug.draw_line(self:GetEntity():GetPos(), self:GetEntity():GetPos() + Vector(0, 100, 0), dbgInfo)
 	end
 end
 
