@@ -13,6 +13,13 @@ ents.VRTrackedDevice.USER_INTERACTION_ACTIVE = 1
 
 local cvForceAlwaysActive = console.get_convar("vr_force_always_active")
 function ents.VRTrackedDevice:Initialize()
+	local result, msg = util.initialize_vr()
+	if result == false then
+		self:LogErr("Failed to initialize vr: {}", msg)
+		self:GetEntity():RemoveSafely()
+		return
+	end
+
 	self:GetEntity():TurnOff()
 
 	self.m_forceActive = false

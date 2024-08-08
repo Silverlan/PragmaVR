@@ -8,6 +8,32 @@
 
 include("/vr/vr_recording.lua")
 
+util = util or {}
+util.impl = util.impl or {}
+util.initialize_vr = function()
+	if util.impl.vr_module_result == false then
+		return false, util.impl.vr_module_result
+	else
+		local result = engine.load_library("openvr/pr_openvr")
+		util.impl.vr_module_result = result
+		if result ~= true then
+			return false, result
+		end
+	end
+
+	if util.impl.vr_initialized == false then
+		return false, util.impl.vr_initialized_message
+	else
+		local result = openvr.initialize()
+		util.impl.vr_initialized = result
+		if result ~= openvr.INIT_ERROR_NONE then
+			util.impl.vr_initialized_message = openvr.init_error_to_string(result)
+			return false, openvr.init_error_to_string(result)
+		end
+	end
+	return true
+end
+
 console.register_variable(
 	"vr_debug_show_controller_location_pointers",
 	udm.TYPE_BOOLEAN,

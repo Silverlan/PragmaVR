@@ -198,22 +198,12 @@ function ents.VRHMD:Setup()
 		return
 	end
 	self.m_setup = true
-	local r = engine.load_library("openvr/pr_openvr")
-	if r ~= true then
-		self.m_errMsg = r
-		console.print_warning("Unable to load openvr module: " .. r)
+
+	local result, msg = util.initialize_vr()
+	if result == false then
+		self:LogErr("Failed to initialize vr: {}", msg)
 		self:GetEntity():RemoveSafely()
 		return
-	end
-
-	if console.get_convar_bool("vr_debug_mode") == false then
-		local result = openvr.initialize()
-		if result ~= openvr.INIT_ERROR_NONE then
-			self.m_errMsg = openvr.init_error_to_string(result)
-			console.print_warning("Unable to initialize openvr library: " .. openvr.init_error_to_string(result))
-			self:GetEntity():RemoveSafely()
-			return
-		end
 	end
 
 	self:InitializeEye(openvr.EYE_LEFT)
