@@ -10,11 +10,6 @@ local Component = util.register_class("ents.VrPovController", BaseEntityComponen
 
 include("forearm_control.lua")
 
-Component:RegisterMember("Enabled", udm.TYPE_BOOLEAN, true, {
-	onChange = function(self)
-		self:UpdateActiveState()
-	end,
-}, "def+is")
 Component:RegisterMember("Pov", ents.MEMBER_TYPE_BOOLEAN, true, {
 	onChange = function(self)
 		self:UpdatePovState()
@@ -72,7 +67,12 @@ end
 function Component:UpdateAvailability()
 	local tdC = util.is_valid(self.m_hmd) and self.m_hmd:GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE) or nil
 	if tdC ~= nil then
-		self:SetEnabled(tdC:GetUserInteractionState() == ents.VRTrackedDevice.USER_INTERACTION_ACTIVE)
+		local active = tdC:GetUserInteractionState() == ents.VRTrackedDevice.USER_INTERACTION_ACTIVE
+		if self:IsActive() ~= active then
+			self:SetActive(active)
+		else
+			self:OnActivate()
+		end
 	end
 	self:BroadcastEvent(Component.EVENT_ON_UPDATE_AVAILABILITY)
 end
@@ -84,14 +84,6 @@ function Component:SetCamera(cam)
 end
 function Component:GetCamera()
 	return self.m_camera
-end
-function Component:UpdateActiveState()
-	local enabled = self:GetEntity():IsSpawned() and self:IsEnabled()
-	if enabled then
-		self:Activate()
-	else
-		self:Deactivate()
-	end
 end
 function Component:Clear()
 	if self.m_ownedIkSolver then
@@ -120,16 +112,22 @@ function Component:ResetPose()
 		ikC:SetAutoSimulate(true)
 	end
 end
-function Component:Deactivate()
+function Component:OnDeactivate()
 	self:UpdateHeadBoneScales()
 	self:ResetPose()
 	self:SetMetaBonesAnimated(false)
 	self:Clear()
 end
 local BONE_ZERO_SCALE = Vector(0.0001, 0.0001, 0.0001) -- Not quite zero, since that can cause some odd graphical glitches in some cases
-function Component:Activate()
+function Component:OnActiveStateChanged(active)
+	if active then
+		self:OnActivate()
+	else
+		self:OnDeactivate()
+	end
+end
+function Component:OnActivate()
 	self:Clear()
-
 	local ent = self:GetEntity()
 	local ikC = ent:GetComponent(ents.COMPONENT_IK_SOLVER)
 	self.m_ownedIkSolver = false
@@ -391,7 +389,7 @@ function Component:UpdateHeadBoneScales()
 		return
 	end
 	local entRef = self:GetTargetActor()
-	local scale = (self:IsEnabled() and self:IsPov() and not self:GetShowHead()) and BONE_ZERO_SCALE or Vector(1, 1, 1)
+	local scale = (self:IsActive() and self:IsPov() and not self:GetShowHead()) and BONE_ZERO_SCALE or Vector(1, 1, 1)
 	local animC = util.is_valid(entRef) and entRef:GetComponent(ents.COMPONENT_ANIMATED) or nil
 	if animC == nil then
 		return
@@ -406,13 +404,10 @@ function Component:OnEntitySpawn()
 	-- more closely.
 	local offset = self:CalcHmdOffset()
 	self.m_hmdCameraOffsetPose = math.Transform(offset, Quaternion())
-
-	self:UpdateActiveState()
 end
 function Component:OnRemove()
 	util.remove(self.m_cbOnRigInitialized)
 	util.remove(self.m_cbHmdInteractionStateChanged)
-	self:Deactivate()
 end
 function Component:UpdatePovState()
 	if self:IsPov() == false and self.m_prePovPose ~= nil then
@@ -669,4 +664,4 @@ function Component:HideHeadBones()
 end
 ents.COMPONENT_VR_POV_CONTROLLER = ents.register_component("vr_pov_controller", Component)
 Component.EVENT_ON_UPDATE_AVAILABILITY =
-	ents.register_component_event(ents.COMPONENT_VR_TRACKED_DEVICE, "on_update_availability")
+	ents.register_component_event(ents.COMPONENT_VR_POV_CONTROLLER, "on_update_availability")
