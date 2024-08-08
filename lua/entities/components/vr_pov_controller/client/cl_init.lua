@@ -593,6 +593,7 @@ function Component:CalcHmdOffset()
 	local metaHeadBone = metaRig:GetBone(Model.MetaRig.BONE_TYPE_HEAD)
 	local offset = (metaHeadBone.min + metaHeadBone.max) / 2.0
 	offset.z = metaHeadBone.max.z
+	offset.x = 0
 	return offset
 end
 -- Animated head pose in object space
