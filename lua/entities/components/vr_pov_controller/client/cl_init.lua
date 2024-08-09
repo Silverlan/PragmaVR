@@ -385,6 +385,40 @@ function Component:OnActivate()
 		self:LogWarn("No HMD has been set!")
 	end
 end
+function Component:GetIkControllerIndices()
+	local indices = {}
+	if self.m_headIkControlIdx ~= nil then
+		table.insert(indices, self.m_headIkControlIdx)
+	end
+	if self.m_leftHandIkControlIdx ~= nil then
+		table.insert(indices, self.m_leftHandIkControlIdx)
+	end
+	if self.m_rightHandIkControlIdx ~= nil then
+		table.insert(indices, self.m_rightHandIkControlIdx)
+	end
+	if self.m_leftForearmIkControlIdx ~= nil then
+		table.insert(indices, self.m_leftForearmIkControlIdx)
+	end
+	if self.m_rightForearmIkControlIdx ~= nil then
+		table.insert(indices, self.m_rightForearmIkControlIdx)
+	end
+	return indices
+end
+function Component:GetHeadIkControlIndex()
+	return self.m_headIkControlIdx
+end
+function Component:GetLeftHandIkControlIndex()
+	return self.m_leftHandIkControlIdx
+end
+function Component:GetRightHandIkControlIndex()
+	return self.m_rightHandIkControlIdx
+end
+function Component:GetLeftForearmIkControlIndex()
+	return self.m_leftForearmIkControlIdx
+end
+function Component:GetRightForearmIkControlIndex()
+	return self.m_rightForearmIkControlIdx
+end
 function Component:UpdateUpperBodyState() end
 function Component:UpdateHeadVisibilityState() end
 function Component:UpdateHeadBoneScales()
