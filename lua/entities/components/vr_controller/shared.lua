@@ -26,6 +26,8 @@ function ents.VRController:Initialize()
 	if CLIENT == true then
 		self:AddEntityComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
 		self:SetTickPolicy(ents.TICK_POLICY_ALWAYS)
+
+		self.m_triggerStates = {}
 	end
 
 	self:BindEvent(ents.TouchComponent.EVENT_ON_START_TOUCH, "OnStartTouch")

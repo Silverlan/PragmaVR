@@ -19,22 +19,30 @@ function ents.VRController:UpdateTriggerState()
 	local state = openvr.get_controller_state(trackedDeviceC:GetTrackedDeviceIndex())
 	if state ~= nil then
 		-- TODO: Implement this properly for all buttons / axes as generic key inputs
-		local triggerAxis = state.axis1
-		if triggerAxis.x >= 0.1 then
-			if triggerAxis.x >= 0.8 then
-				if self.m_triggerState ~= ents.VRController.TRIGGER_STATE_PRESS then
-					self.m_triggerState = ents.VRController.TRIGGER_STATE_PRESS
-					self:BroadcastEvent(self.EVENT_ON_TRIGGER_STATE_CHANGED, { self.m_triggerState })
+		local axis = { state.axis0, state.axis1, state.axis2, state.axis3, state.axis4 }
+		for i, triggerAxis in ipairs(axis) do
+			if math.abs(triggerAxis.x) >= 0.1 then
+				if math.abs(triggerAxis.x) >= 0.8 then
+					if self.m_triggerStates[i] ~= ents.VRController.TRIGGER_STATE_PRESS then
+						self.m_triggerStates[i] = ents.VRController.TRIGGER_STATE_PRESS
+						self:BroadcastEvent(
+							self.EVENT_ON_TRIGGER_STATE_CHANGED,
+							{ i - 1, self.m_triggerStates[i], state }
+						)
+					end
+				else
+					if self.m_triggerStates[i] ~= ents.VRController.TRIGGER_STATE_TOUCH then
+						self.m_triggerStates[i] = ents.VRController.TRIGGER_STATE_TOUCH
+						self:BroadcastEvent(
+							self.EVENT_ON_TRIGGER_STATE_CHANGED,
+							{ i - 1, self.m_triggerStates[i], state }
+						)
+					end
 				end
-			else
-				if self.m_triggerState ~= ents.VRController.TRIGGER_STATE_TOUCH then
-					self.m_triggerState = ents.VRController.TRIGGER_STATE_TOUCH
-					self:BroadcastEvent(self.EVENT_ON_TRIGGER_STATE_CHANGED, { self.m_triggerState })
-				end
+			elseif self.m_triggerStates[i] ~= ents.VRController.TRIGGER_STATE_RELEASE then
+				self.m_triggerStates[i] = ents.VRController.TRIGGER_STATE_RELEASE
+				self:BroadcastEvent(self.EVENT_ON_TRIGGER_STATE_CHANGED, { i - 1, self.m_triggerStates[i], state })
 			end
-		elseif self.m_triggerState ~= ents.VRController.TRIGGER_STATE_RELEASE then
-			self.m_triggerState = ents.VRController.TRIGGER_STATE_RELEASE
-			self:BroadcastEvent(self.EVENT_ON_TRIGGER_STATE_CHANGED, { self.m_triggerState })
 		end
 	end
 end
