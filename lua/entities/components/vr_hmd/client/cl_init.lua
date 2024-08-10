@@ -79,6 +79,8 @@ function ents.VRHMD:OnTick()
 			-- Doesn't seem to get called?
 		end
 	end
+
+	self:InvokeEventCallbacks(ents.VRHMD.EVENT_ON_EVENTS_UPDATED)
 end
 function ents.VRHMD:ActivateTrackedDevice(deviceId, type)
 	if type == openvr.TRACKED_DEVICE_CLASS_CONTROLLER then
@@ -497,4 +499,5 @@ ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATION_CHANGED =
 	ents.register_component_event(ents.COMPONENT_VR_HMD, "tracked_device_activation_changed")
 ents.VRHMD.EVENT_ON_HMD_INITIALIZED = ents.register_component_event(ents.COMPONENT_VR_HMD, "hmd_initialized")
 ents.VRHMD.EVENT_ON_HMD_POSE_UPDATED = ents.register_component_event(ents.COMPONENT_VR_HMD, "hmd_pose_updated")
+ents.VRHMD.EVENT_ON_EVENTS_UPDATED = ents.register_component_event(ents.COMPONENT_VR_HMD, "on_events_updated")
 ents.VRHMD.EVENT_UPDATE_HMD_POSE = ents.register_component_event(ents.COMPONENT_VR_HMD, "update_hmd_pose")
