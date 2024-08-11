@@ -12,11 +12,7 @@ ents.VRController.TRIGGER_STATE_RELEASE = 0
 ents.VRController.TRIGGER_STATE_TOUCH = 1
 ents.VRController.TRIGGER_STATE_PRESS = 2
 function ents.VRController:UpdateTriggerState()
-	local trackedDeviceC = self:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
-	if openvr == nil or trackedDeviceC == nil then
-		return
-	end
-	local state = openvr.get_controller_state(trackedDeviceC:GetTrackedDeviceIndex())
+	local state = self:GetControllerState()
 	if state ~= nil then
 		-- TODO: Implement this properly for all buttons / axes as generic key inputs
 		local axis = { state.axis0, state.axis1, state.axis2, state.axis3, state.axis4 }
@@ -47,14 +43,20 @@ function ents.VRController:UpdateTriggerState()
 	end
 end
 
+function ents.VRController:GetControllerState()
+	local trackedDeviceC = self:GetEntity():GetComponent(ents.COMPONENT_VR_TRACKED_DEVICE)
+	if openvr == nil or trackedDeviceC == nil then
+		return
+	end
+	return openvr.get_controller_state(trackedDeviceC:GetTrackedDeviceIndex())
+end
+
 function ents.VRController:InjectButtonInput(buttonId, state)
 	self:BroadcastEvent(self.EVENT_ON_BUTTON_INPUT, { buttonId, state })
 end
 
 function ents.VRController:SetCursorEnabled(enabled)
 	self.m_cursorEnabled = enabled
-
-	-- TODO
 end
 
 function ents.VRController:IsControllerEnabled()
