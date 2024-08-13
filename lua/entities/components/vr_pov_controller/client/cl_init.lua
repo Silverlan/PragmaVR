@@ -93,7 +93,8 @@ function Component:Clear()
 	self.m_headIkControlIdx = nil
 	self.m_leftHandIkControlIdx = nil
 	self.m_rightHandIkControlIdx = nil
-	self.m_targetActorHeadBones = nil
+	self.m_targetActorHeadData = nil
+	self.m_curHeadVisibility = nil
 	util.remove(self.m_cbUpdateHmdPose)
 	util.remove(self.m_cbOnAnimationsUpdated)
 end
@@ -113,7 +114,7 @@ function Component:ResetPose()
 	end
 end
 function Component:OnDeactivate()
-	self:UpdateHeadBoneScales()
+	self:UpdateHeadVisibility()
 	self:ResetPose()
 	self:SetMetaBonesAnimated(false)
 	self:Clear()
@@ -342,7 +343,8 @@ function Component:OnActivate()
 		end
 	end
 
-	self.m_targetActorHeadBones = {}
+	self.m_targetActorHeadData = {}
+	self.m_curHeadVisibility = nil
 	local target = self:GetTargetActor()
 	if util.is_valid(target) then
 		local panimaC = target:GetComponent(ents.COMPONENT_PANIMA)
@@ -351,21 +353,26 @@ function Component:OnActivate()
 				ents.PanimaComponent.EVENT_ON_ANIMATIONS_UPDATED,
 				function()
 					self:UpdateHeadIkControl()
-					self:HideHeadBones()
+					self:UpdateHeadVisibility()
 					-- self:UpdateForearmControls()
 				end
 			)
 		end
 
-		local mdl = target:GetModel()
-		local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
-		if metaRig ~= nil then
-			local metaBoneHead = metaRig:GetBone(Model.MetaRig.BONE_TYPE_HEAD)
-			local metaBoneNeck = metaRig:GetBone(Model.MetaRig.BONE_TYPE_NECK)
-			self.m_targetActorHeadBones = {
-				headBoneId = (metaBoneHead ~= nil) and metaBoneHead.boneId or nil,
-				neckBoneId = (metaBoneNeck ~= nil) and metaBoneNeck.boneId or nil,
-			}
+		local headhackC = target:GetComponent(ents.COMPONENT_VRP_HEADHACK)
+		if headhackC ~= nil then
+			self.m_targetActorHeadData.headEntity = headhackC:GetHeadEntity()
+		else
+			local mdl = target:GetModel()
+			local metaRig = (mdl ~= nil) and mdl:GetMetaRig() or nil
+			if metaRig ~= nil then
+				local metaBoneHead = metaRig:GetBone(Model.MetaRig.BONE_TYPE_HEAD)
+				local metaBoneNeck = metaRig:GetBone(Model.MetaRig.BONE_TYPE_NECK)
+				self.m_targetActorHeadData = {
+					headBoneId = (metaBoneHead ~= nil) and metaBoneHead.boneId or nil,
+					neckBoneId = (metaBoneNeck ~= nil) and metaBoneNeck.boneId or nil,
+				}
+			end
 		end
 	else
 		self:LogWarn("No target actor has been set!")
@@ -421,21 +428,6 @@ function Component:GetRightForearmIkControlIndex()
 end
 function Component:UpdateUpperBodyState() end
 function Component:UpdateHeadVisibilityState() end
-function Component:UpdateHeadBoneScales()
-	if self.m_targetActorHeadBones == nil then
-		return
-	end
-	local entRef = self:GetTargetActor()
-	local scale = (self:IsActive() and self:IsPov() and not self:GetShowHead()) and BONE_ZERO_SCALE or Vector(1, 1, 1)
-	local animC = util.is_valid(entRef) and entRef:GetComponent(ents.COMPONENT_ANIMATED) or nil
-	if animC == nil then
-		return
-	end
-	local boneIds = { self.m_targetActorHeadBones.headBoneId, self.m_targetActorHeadBones.neckBoneId }
-	for _, boneId in ipairs(boneIds) do
-		animC:SetBoneScale(boneId, scale)
-	end
-end
 function Component:OnEntitySpawn()
 	-- We'll apply an offset to the HMD pose, which will make the IK pose match the real-world pose
 	-- more closely.
@@ -697,8 +689,38 @@ function Component:UpdateHeadIkControl()
 		end
 	end
 end
-function Component:HideHeadBones()
-	self:UpdateHeadBoneScales()
+function Component:UpdateHeadVisibility()
+	if self.m_targetActorHeadData == nil then
+		return
+	end
+
+	local showHead = not (self:IsActive() and self:IsPov() and not self:GetShowHead())
+	if showHead == self.m_curHeadVisibility then
+		return
+	end
+	self.m_curHeadVisibility = showHead
+
+	local entHead = self.m_targetActorHeadData.headEntity
+	if entHead ~= nil then
+		if entHead:IsValid() then
+			local renderC = entHead:GetComponent(ents.COMPONENT_RENDER)
+			if renderC ~= nil then
+				renderC:SetVisible(showHead)
+			end
+		end
+		return
+	end
+
+	local entRef = self:GetTargetActor()
+	local scale = (not showHead) and BONE_ZERO_SCALE or Vector(1, 1, 1)
+	local animC = util.is_valid(entRef) and entRef:GetComponent(ents.COMPONENT_ANIMATED) or nil
+	if animC == nil then
+		return
+	end
+	local boneIds = { self.m_targetActorHeadData.headBoneId, self.m_targetActorHeadData.neckBoneId }
+	for _, boneId in ipairs(boneIds) do
+		animC:SetBoneScale(boneId, scale)
+	end
 end
 ents.COMPONENT_VR_POV_CONTROLLER = ents.register_component("vr_pov_controller", Component)
 Component.EVENT_ON_UPDATE_AVAILABILITY =
