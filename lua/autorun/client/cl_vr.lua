@@ -149,7 +149,7 @@ console.register_command("vr_pose_wait_time", function()
 		console.print_warning("OpenVR module has not been loaded!")
 		return
 	end
-	print("Last pose wait time: " .. openvr.get_pose_wait_time() .. "ms")
+	print("Last pose wait time: " .. openvr.get_smoothed_pose_wait_time() .. "ms")
 end)
 
 console.register_variable(
