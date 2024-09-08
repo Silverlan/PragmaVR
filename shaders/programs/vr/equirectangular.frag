@@ -11,10 +11,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-#include "/math/equirectangular.gls"
-#include "sh_equirectangular.gls"
+#include "/math/equirectangular.glsl"
+#include "equirectangular.glsl"
 
-layout(LAYOUT_ID(0,0)) uniform sampler2D u_texture;
+layout(LAYOUT_ID(TEXTURE,TEXTURE)) uniform sampler2D u_texture;
 
 layout(location = 0) in vec2 vs_vert_uv;
 layout(location = 1) in vec3 vs_vert_world_dir;

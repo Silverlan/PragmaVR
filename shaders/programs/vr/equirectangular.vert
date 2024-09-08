@@ -3,7 +3,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_ARB_shading_language_420pack : enable
 
-#include "sh_equirectangular.gls"
+#include "equirectangular.glsl"
 
 layout(location = 0) in vec2 in_vert_pos;
 layout(location = 1) in vec2 in_vert_uv;

@@ -8,8 +8,8 @@
 
 util.register_class("shader.VREquirectangular", shader.BaseGraphics)
 
-shader.VREquirectangular.FragmentShader = "vr/fs_equirectangular"
-shader.VREquirectangular.VertexShader = "vr/vs_equirectangular"
+shader.VREquirectangular.FragmentShader = "programs/vr/equirectangular"
+shader.VREquirectangular.VertexShader = "programs/vr/equirectangular"
 
 shader.VREquirectangular.RENDER_FLAG_NONE = 0
 shader.VREquirectangular.RENDER_FLAG_EQUIRECTANGULAR_BIT = 1
@@ -32,21 +32,27 @@ function shader.VREquirectangular:__init()
 	self.m_dsPushConstants =
 		util.DataStream(util.SIZEOF_MAT4 + util.SIZEOF_VECTOR2 * 2 + util.SIZEOF_FLOAT * 2 + util.SIZEOF_INT)
 end
-function shader.VREquirectangular:InitializePipeline(pipelineInfo, pipelineIdx)
-	shader.BaseGraphics.InitializePipeline(self, pipelineInfo, pipelineIdx)
-	pipelineInfo:AttachPushConstantRange(
+function shader.VREquirectangular:InitializeShaderResources()
+	shader.BaseGraphics.InitializeShaderResources(self)
+	self:AttachPushConstantRange(
 		0,
 		self.m_dsPushConstants:GetSize(),
 		bit.bor(prosper.SHADER_STAGE_FRAGMENT_BIT, prosper.SHADER_STAGE_VERTEX_BIT)
 	)
-	pipelineInfo:AttachVertexAttribute(shader.VertexBinding(prosper.VERTEX_INPUT_RATE_VERTEX), {
+	self:AttachVertexAttribute(shader.VertexBinding(prosper.VERTEX_INPUT_RATE_VERTEX), {
 		shader.VertexAttribute(prosper.FORMAT_R32G32_SFLOAT), -- Position
 		shader.VertexAttribute(prosper.FORMAT_R32G32_SFLOAT), -- UV
 	})
-	pipelineInfo:AttachDescriptorSetInfo(shader.DescriptorSetInfo({
-		shader.DescriptorSetBinding(prosper.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, prosper.SHADER_STAGE_FRAGMENT_BIT),
+	self:AttachDescriptorSetInfo(shader.DescriptorSetInfo("TEXTURE", {
+		shader.DescriptorSetBinding(
+			"TEXTURE",
+			prosper.DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+			prosper.SHADER_STAGE_FRAGMENT_BIT
+		),
 	}))
-
+end
+function shader.VREquirectangular:InitializePipeline(pipelineInfo, pipelineIdx)
+	shader.BaseGraphics.InitializePipeline(self, pipelineInfo, pipelineIdx)
 	pipelineInfo:SetPolygonMode(prosper.POLYGON_MODE_FILL)
 	pipelineInfo:SetPrimitiveTopology(prosper.PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 end
