@@ -722,6 +722,6 @@ function Component:UpdateHeadVisibility()
 		animC:SetBoneScale(boneId, scale)
 	end
 end
-ents.COMPONENT_VR_POV_CONTROLLER = ents.register_component("vr_pov_controller", Component)
+ents.register_component("vr_pov_controller", Component, "vr")
 Component.EVENT_ON_UPDATE_AVAILABILITY =
 	ents.register_component_event(ents.COMPONENT_VR_POV_CONTROLLER, "on_update_availability")

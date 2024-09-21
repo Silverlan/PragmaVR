@@ -44,4 +44,4 @@ function Component:OnEntitySpawn()
 	local mdl = self:GetModel()
 	self:GetEntity():SetModel(mdl)
 end
-ents.COMPONENT_VR_CONTROLLER_LASER = ents.register_component("vr_controller_laser", Component)
+ents.register_component("vr_controller_laser", Component, "vr")

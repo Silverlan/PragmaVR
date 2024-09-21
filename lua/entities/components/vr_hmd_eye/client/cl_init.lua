@@ -184,4 +184,4 @@ function ents.VRHMDEye:DrawScene(mainDrawSceneInfo)
 		game.queue_scene_for_rendering(self.m_drawSceneInfo)
 	end
 end
-ents.COMPONENT_VR_HMD_EYE = ents.register_component("vr_hmd_eye", ents.VRHMDEye)
+ents.register_component("vr_hmd_eye", ents.VRHMDEye, "vr")
