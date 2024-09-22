@@ -142,4 +142,4 @@ function ents.VRVideo:SetEyeTexture(eye, vrView)
 		el:GetHorizontalRangeProperty():Link(vrView:GetHorizontalRangeProperty())
 	end
 end
-ents.register_component("vr_video", ents.VRVideo, "vr")
+ents.register_component("vr_video", ents.VRVideo, "vr", ents.EntityComponent.FREGISTER_BIT_HIDE_IN_EDITOR)

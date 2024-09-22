@@ -184,4 +184,4 @@ function ents.VRHMDEye:DrawScene(mainDrawSceneInfo)
 		game.queue_scene_for_rendering(self.m_drawSceneInfo)
 	end
 end
-ents.register_component("vr_hmd_eye", ents.VRHMDEye, "vr")
+ents.register_component("vr_hmd_eye", ents.VRHMDEye, "vr", ents.EntityComponent.FREGISTER_BIT_HIDE_IN_EDITOR)

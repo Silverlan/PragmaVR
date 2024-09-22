@@ -44,4 +44,4 @@ function Component:OnEntitySpawn()
 	local mdl = self:GetModel()
 	self:GetEntity():SetModel(mdl)
 end
-ents.register_component("vr_controller_laser", Component, "vr")
+ents.register_component("vr_controller_laser", Component, "vr", ents.EntityComponent.FREGISTER_BIT_HIDE_IN_EDITOR)

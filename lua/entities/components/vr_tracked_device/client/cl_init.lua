@@ -275,6 +275,11 @@ function ents.VRTrackedDevice:GetDevicePose()
 	end
 	return pose, vel
 end
-ents.register_component("vr_tracked_device", ents.VRTrackedDevice, "vr")
+ents.register_component(
+	"vr_tracked_device",
+	ents.VRTrackedDevice,
+	"vr",
+	ents.EntityComponent.FREGISTER_BIT_HIDE_IN_EDITOR
+)
 ents.VRTrackedDevice.EVENT_ON_USER_INTERACTION_STATE_CHANGED =
 	ents.register_component_event(ents.COMPONENT_VR_TRACKED_DEVICE, "user_interaction_state_changed")

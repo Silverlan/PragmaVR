@@ -171,5 +171,8 @@ function ents.VRController:SetControllerTransform(pos, rot, vel)
   ]]
 end
 
-ents.COMPONENT_VR_CONTROLLER =
-	ents.register_component("vr_controller", ents.VRController, ents.EntityComponent.FREGISTER_BIT_NETWORKED)
+ents.COMPONENT_VR_CONTROLLER = ents.register_component(
+	"vr_controller",
+	ents.VRController,
+	bit.bor(ents.EntityComponent.FREGISTER_BIT_NETWORKED, ents.EntityComponent.FREGISTER_BIT_HIDE_IN_EDITOR)
+)

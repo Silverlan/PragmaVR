@@ -489,7 +489,7 @@ function ents.VRHMD:OnRemove()
 	util.remove(self.m_cbSubmitScenes)
 	util.remove(self.m_debugMirrorUi)
 end
-ents.register_component("vr_hmd", ents.VRHMD, "vr")
+ents.register_component("vr_hmd", ents.VRHMD, "vr", ents.EntityComponent.FREGISTER_BIT_HIDE_IN_EDITOR)
 ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ADDED = ents.register_component_event(ents.COMPONENT_VR_HMD, "controller_added")
 ents.VRHMD.EVENT_ON_TRACKED_DEVICE_ACTIVATED =
 	ents.register_component_event(ents.COMPONENT_VR_HMD, "tracked_device_activated")

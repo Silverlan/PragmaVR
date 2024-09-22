@@ -378,6 +378,6 @@ function Component:InitializeIkTree(name, ikChain)
 	ikData.enabled = true
 	self:ResetIkTree(name)
 end
-ents.register_component("vr_ik", Component, "vr")
+ents.register_component("vr_ik", Component, "vr", ents.EntityComponent.FREGISTER_BIT_HIDE_IN_EDITOR)
 Component.EVENT_ON_IK_TREES_UPDATED = ents.register_component_event(ents.COMPONENT_VR_IK, "on_ik_trees_updated")
 Component.EVENT_PRE_IK_TREES_UPDATED = ents.register_component_event(ents.COMPONENT_VR_IK, "pre_ik_trees_updated")
