@@ -45,7 +45,7 @@ function gui.VRTimeline:OnInitialize()
 	local cursor = gui.create("WIPFMSliderCursor", self)
 	cursor:CenterToParentX()
 	cursor:SetType(gui.PFMSliderCursor.TYPE_HORIZONTAL)
-	cursor:AddCallback("OnFractionChanged", function(el, fraction, inputOrigin)
+	cursor:AddCallback("OnValueChanged", function(el, value, fraction, inputOrigin)
 		self:SetTimeOffset(fraction * self:GetDuration(), inputOrigin)
 	end)
 	self.m_cursor = cursor
