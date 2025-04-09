@@ -26,11 +26,30 @@ local SHADER_FLAG_NONE = 0
 local SHADER_FLAG_2D_BIT = 1
 local SHADER_FLAG_ENABLE_MARGIN = 2
 
-function shader.VREquirectangular:__init()
-	shader.BaseGraphics.__init(self)
+local RENDER_PASS_TYPE_R8G8B8A8 = 0
+local RENDER_PASS_TYPE_R16G16B16A16 = 1
 
+function shader.VREquirectangular:Initialize()
 	self.m_dsPushConstants =
 		util.DataStream(util.SIZEOF_MAT4 + util.SIZEOF_VECTOR2 * 2 + util.SIZEOF_FLOAT * 2 + util.SIZEOF_INT)
+	self:SetPipelineCount(2)
+end
+function shader.VREquirectangular:InitializeRenderPass(pipelineIdx)
+	local rpCreateInfo = prosper.RenderPassCreateInfo()
+	local format
+	if pipelineIdx == RENDER_PASS_TYPE_R8G8B8A8 then
+		format = prosper.FORMAT_R8G8B8A8_UNORM
+	else
+		format = prosper.FORMAT_R16G16B16A16_SFLOAT
+	end
+	rpCreateInfo:AddAttachment(
+		format,
+		prosper.IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		prosper.IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		prosper.ATTACHMENT_LOAD_OP_DONT_CARE,
+		prosper.ATTACHMENT_STORE_OP_STORE
+	)
+	return { prosper.create_render_pass(rpCreateInfo) }
 end
 function shader.VREquirectangular:InitializeShaderResources()
 	shader.BaseGraphics.InitializeShaderResources(self)
@@ -61,8 +80,17 @@ function shader.VREquirectangular:Draw(drawCmd, dsTex, invVp, horizontalRange, z
 	if baseShader:IsValid() == false then
 		return
 	end
+	local tex = dsTex:GetBindingTexture(0)
+	if tex == nil then
+		return
+	end
+	local format = tex:GetImage():GetFormat()
 	local bindState = shader.BindState(drawCmd)
-	if baseShader:RecordBeginDraw(bindState) == false then
+	local pipelineIdx = RENDER_PASS_TYPE_R8G8B8A8
+	if format == prosper.FORMAT_R16G16B16A16_SFLOAT then
+		pipelineIdx = RENDER_PASS_TYPE_R16G16B16A16
+	end
+	if baseShader:RecordBeginDraw(bindState, pipelineIdx) == false then
 		return
 	end
 	flags = flags or shader.VREquirectangular.RENDER_FLAG_NONE
