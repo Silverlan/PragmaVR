@@ -2,7 +2,7 @@
 -- SPDX-License-Identifier: MIT
 
 include("/vr/video_player.lua")
-include("/gui/aspectratio.lua")
+include("/gui/layout/aspect_ratio.lua")
 include("/gui/vr_view.lua")
 
 util.register_class("gui.VRVideoPlayer", gui.Base, gui.VRView)

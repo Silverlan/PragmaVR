@@ -1,7 +1,7 @@
 -- SPDX-FileCopyrightText: (c) 2020 Silverlan <opensource@pragma-engine.com>
 -- SPDX-License-Identifier: MIT
 
-include("/gui/pfm/slidercursor.lua")
+include("/gui/pfm/controls/slider/cursor.lua")
 
 util.register_class("gui.VRTimeline", gui.Base)
 
@@ -37,7 +37,7 @@ function gui.VRTimeline:OnInitialize()
 	progressBar:SetRange(0, 1, 0.001)
 	self.m_progressBar = progressBar
 
-	local cursor = gui.create("WIPFMSliderCursor", self)
+	local cursor = gui.create("pfm_slider_cursor", self)
 	cursor:CenterToParentX()
 	cursor:SetType(gui.PFMSliderCursor.TYPE_HORIZONTAL)
 	cursor:AddCallback("OnValueChanged", function(el, value, fraction, inputOrigin)
@@ -106,10 +106,10 @@ function gui.VRTimeline:OnUpdate()
 	for _, chapterData in ipairs(self.m_chapters) do
 		local el = chapterData.element
 		if el:IsValid() then
-			el:SetHeight(self:GetHeight())
+			el:ApplyHeight(self:GetHeight())
 
 			local x = self:TimestampToXOffset(chapterData.timestamp)
-			el:SetX(x)
+			el:ApplyX(x)
 		end
 	end
 end

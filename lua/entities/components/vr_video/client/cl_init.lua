@@ -1,7 +1,7 @@
 -- SPDX-FileCopyrightText: (c) 2020 Silverlan <opensource@pragma-engine.com>
 -- SPDX-License-Identifier: MIT
 
-include("/gui/renderimage.lua")
+include("/gui/viewport/render_image.lua")
 
 util.register_class("ents.VRVideo", BaseEntityComponent)
 
@@ -103,7 +103,7 @@ function ents.VRVideo:InitializeEye(eyeIdx)
 	scene:SetWorldEnvironment(gameScene:GetWorldEnvironment())
 	self.m_eyeScenes[eyeIdx] = scene
 
-	local elTex = gui.create("WIRenderImage")
+	local elTex = gui.create("render_image")
 	elTex:SetVisible(false)
 	elTex:SetVRView(true)
 	elTex:SetAutoUpdate(false)
